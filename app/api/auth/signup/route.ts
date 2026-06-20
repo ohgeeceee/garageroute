@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSession, hashPassword, isValidEmail, normalizeEmail, auditUser } from "@/lib/auth-user";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail } from "@/emails/welcome";
 
 export async function POST(req: NextRequest) {
   let body: { email?: string; password?: string; name?: string };
@@ -37,6 +39,28 @@ export async function POST(req: NextRequest) {
 
   await createSession(user.id);
   await auditUser("user.signup", user.id, { email });
+
+  // Fire-and-forget welcome email. Failures here MUST NOT affect signup —
+  // the user is created, the session is set, and the response is the same.
+  // The pipeline marks the EmailMessage as failed when RESEND_API_KEY is
+  // unset, so we still get an audit trail in the admin inbox.
+  try {
+    const rendered = welcomeEmail({ name: user.name, email: user.email, zip: "" });
+    void sendEmail({
+      to: user.email,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      kind: "welcome",
+      metadata: { userId: user.id },
+    }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("[signup] welcome email failed:", err);
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[signup] welcome email render failed:", err);
+  }
 
   return NextResponse.json({ ok: true, user });
 }

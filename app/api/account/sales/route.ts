@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, auditUser } from "@/lib/auth-user";
+import { getStorage, ownerOfKey } from "@/lib/storage";
+
+const MAX_PHOTOS_PER_SALE = 8;
 
 /* ---------- helpers ---------- */
 function trim(s: unknown, max: number, fallback = ""): string {
@@ -81,6 +84,32 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Photos: client uploads directly to S3 (presigned PUT) then sends the
+  // resulting keys here. We resolve them to public URLs at the API edge so
+  // the rest of the app (FB share, email, browse page) keeps working with
+  // plain URLs and we can swap CDN later without rewriting the DB.
+  let photosJson = "[]";
+  if (body.photoKeys !== undefined) {
+    if (!Array.isArray(body.photoKeys)) {
+      return NextResponse.json({ error: "photoKeys must be an array" }, { status: 400 });
+    }
+    const keys = body.photoKeys.map((k) => String(k)).slice(0, MAX_PHOTOS_PER_SALE);
+    if (keys.length !== body.photoKeys.length) {
+      return NextResponse.json(
+        { error: `Too many photos. Max ${MAX_PHOTOS_PER_SALE}.` },
+        { status: 400 },
+      );
+    }
+    for (const k of keys) {
+      if (ownerOfKey(k) !== user.id) {
+        return NextResponse.json({ error: "Foreign photo key rejected" }, { status: 403 });
+      }
+    }
+    const storage = getStorage();
+    const urls = keys.map((k) => storage.resolvePublicUrl(k) ?? k);
+    photosJson = JSON.stringify(urls);
+  }
+
   const sale = await prisma.sale.create({
     data: {
       title,
@@ -96,11 +125,19 @@ export async function POST(req: NextRequest) {
       description,
       seller: user.name,
       sellerUserId: user.id,
-      photos: "[]",
+      photos: photosJson,
     },
-    select: { id: true, title: true, sellerToken: true, createdAt: true },
+    select: { id: true, title: true, sellerToken: true, photos: true, createdAt: true },
   });
 
   await auditUser("sale.create", sale.id, { via: "account", sellerUserId: user.id });
   return NextResponse.json({ ok: true, sale });
 }
+
+/**
+ * PATCH /api/account/sales/:id — moved to ./[id]/route.ts
+ *
+ * (This endpoint used to live here too, but Next's static analysis flagged it:
+ * the no-param route shouldn't export PATCH. The PATCH handler is now in
+ * ./[id]/route.ts which correctly receives the { id } param.)
+ */

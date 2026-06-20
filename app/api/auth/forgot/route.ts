@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issuePasswordReset, isValidEmail, normalizeEmail, auditUser } from "@/lib/auth-user";
+import { sendEmail, emailEnabled } from "@/lib/email";
 
 /**
  * Issues a password-reset token.
- * If SMTP is wired, send the email. Otherwise, log the reset URL to server console
- * so an admin can paste it to the user manually.
+ *
+ * If RESEND_API_KEY is set, sends a real email.
+ * Otherwise, logs the reset URL to the server console so an admin can paste it.
  */
 export async function POST(req: NextRequest) {
   let body: { email?: string };
@@ -21,9 +23,25 @@ export async function POST(req: NextRequest) {
   const token = await issuePasswordReset(email);
   if (token) {
     const url = `${process.env.NEXT_PUBLIC_APP_URL || "https://garageroute.com"}/reset-password?token=${token}`;
-    // eslint-disable-next-line no-console
-    console.log(`[password-reset] ${email} → ${url}`);
-    await auditUser("user.password_reset_requested", email, {});
+    const subject = "Reset your GarageRoute password";
+    const text =
+      `Hi,\n\n` +
+      `Someone (hopefully you) asked to reset the password for ${email} on GarageRoute.\n\n` +
+      `Click this link to choose a new password (valid for 1 hour):\n${url}\n\n` +
+      `If you didn't ask for this, you can ignore this email — nothing changes until you click.\n\n` +
+      `— GarageRoute`;
+
+    const result = await sendEmail({ to: email, subject, text });
+
+    if (!result.ok) {
+      // eslint-disable-next-line no-console
+      console.log(`[password-reset] ${email} → ${url} (email send failed: ${result.error})`);
+    }
+
+    await auditUser("user.password_reset_requested", email, {
+      delivered: result.ok,
+      skipped: result.skipped,
+    });
   }
 
   // Always respond ok — don't leak whether email exists

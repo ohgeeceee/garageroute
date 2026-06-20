@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import ScoutWidget from "@/components/ScoutWidget";
 import { getCurrentUser } from "@/lib/auth-user";
 
 const inter = Inter({
@@ -17,8 +18,23 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * Base URL for all absolute metadata. Falls back to localhost for dev.
+ * This needs to be set so that OpenGraph/Twitter images, canonical
+ * URLs, and JSON-LD all resolve to a real host in production.
+ */
+const DEFAULT_APP_URL = "http://localhost:3000";
+function appBaseUrl(): string {
+  const fromEnv = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+  return fromEnv || DEFAULT_APP_URL;
+}
+
 export const metadata: Metadata = {
-  title: "GarageRoute — Operations Console",
+  metadataBase: new URL(appBaseUrl()),
+  title: {
+    default: "GarageRoute — Find garage sales. Plan the route.",
+    template: "%s — GarageRoute",
+  },
   description:
     "Discover local garage and estate sales, preview items, and build optimized weekend routes.",
   manifest: "/manifest.json",
@@ -32,6 +48,23 @@ export const metadata: Metadata = {
     description:
       "Preview items inside local garage sales and build an optimized Saturday route.",
     type: "website",
+    siteName: "GarageRoute",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GarageRoute",
+    description:
+      "Preview items inside local garage sales and build an optimized Saturday route.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
@@ -64,6 +97,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-surface-50 text-surface-900">
         <Providers user={sessionUser}>{children}</Providers>
+        <ScoutWidget />
         <ServiceWorkerRegistration />
       </body>
     </html>

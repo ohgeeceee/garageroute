@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, PlusCircle, AlertTriangle, ShieldCheck } from "lucide-react";
+import { PhotoUploader, type PhotoEntry } from "@/components/PhotoUploader";
 
 type Me = { id: string; name: string; city: string; state: string; zip: string; verifiedSeller: boolean } | null;
 
@@ -20,6 +21,7 @@ export default function NewSalePage() {
     hours: "",
     description: "",
   });
+  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,10 @@ export default function NewSalePage() {
       })
       .catch(() => setMe(null));
   }, []);
+
+  const photoKeys = useMemo(() => photos.filter((p) => p.key).map((p) => p.key!) , [photos]);
+  const stillUploading = photos.some((p) => p.status === "uploading");
+  const hasErrors = photos.some((p) => p.status === "error");
 
   if (me === undefined) {
     return <div className="flex h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-surface-400" /></div>;
@@ -68,12 +74,26 @@ export default function NewSalePage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (stillUploading) {
+      setError("Wait for photos to finish uploading.");
+      return;
+    }
+    if (hasErrors) {
+      setError("Remove failed photos before submitting.");
+      return;
+    }
+    if (!form.title || !form.address || !form.city || !form.state || !form.zip) {
+      setError("Title, address, city, state, and ZIP are required.");
+      return;
+    }
+
     setBusy(true);
     try {
       const res = await fetch("/api/account/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, photoKeys }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to create sale.");
@@ -141,6 +161,10 @@ export default function NewSalePage() {
           <textarea rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} className="input" />
         </Field>
 
+        <Field label="Photos" hint={`${photos.filter((p) => p.status === "done").length}/8 — first photo is the cover.`}>
+          <PhotoUploader scope="sales" value={photos} onChange={setPhotos} max={8} />
+        </Field>
+
         {error && (
           <p role="alert" className="rounded-md border border-error-200 bg-error-50 px-3 py-2 text-sm text-error-700">
             {error}
@@ -149,7 +173,7 @@ export default function NewSalePage() {
 
         <div className="flex items-center justify-end gap-2">
           <a href="/account/sales" className="btn btn-secondary">Cancel</a>
-          <button type="submit" disabled={busy} className="btn btn-primary">
+          <button type="submit" disabled={busy || stillUploading} className="btn btn-primary">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
             Create sale
           </button>

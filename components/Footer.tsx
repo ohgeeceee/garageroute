@@ -11,6 +11,7 @@ import {
 const product = [
   { href: "/sales", label: "Browse sales" },
   { href: "/routes", label: "Themed routes" },
+  { href: "/blog", label: "Blog" },
   { href: "/post", label: "Post a sale" },
   { href: "/manage/demo", label: "Seller dashboard" },
 ];

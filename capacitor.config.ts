@@ -1,17 +1,22 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
+/**
+ * Mobile app points at the live web app. Update `url` to swap environments.
+ * Set to undefined to fall back to the bundled `out/` static export.
+ */
 const config: CapacitorConfig = {
-  appId: 'com.garageroute.app',
-  appName: 'GarageRoute',
-  webDir: 'out',
-  server: process.env.NEXT_PUBLIC_APP_URL
-    ? { url: process.env.NEXT_PUBLIC_APP_URL }
-    : undefined,
+  appId: "com.garageroute.app",
+  appName: "GarageRoute",
+  webDir: "out",
+  server: {
+    url: "https://garageroute.com",
+    cleartext: false,
+  },
   ios: {
-    contentInset: 'always',
+    contentInset: "always",
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
   },
 };
 

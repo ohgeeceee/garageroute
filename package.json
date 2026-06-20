@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3001",
     "lint": "eslint",
     "db:seed": "npx prisma db seed",
     "db:migrate": "npx prisma migrate dev",
@@ -19,14 +19,21 @@
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.85",
+    "@ai-sdk/openai-compatible": "^1.0.41",
+    "@anthropic-ai/sdk": "^0.105.0",
+    "@aws-sdk/client-s3": "^3.1073.0",
+    "@aws-sdk/s3-request-presigner": "^3.1073.0",
     "@capacitor/android": "^8.4.0",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
     "@prisma/client": "^6.19.3",
+    "ai": "^6.0.208",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "leaflet": "^1.9.4",
+    "lru-cache": "^11.5.1",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
     "prisma": "^6.19.3",
@@ -34,9 +41,12 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
+    "resend": "^6.14.0",
+    "server-only": "^0.0.1",
     "sharp": "^0.35.1",
     "sonner": "^2.0.7",
     "stripe": "^22.2.2",
+    "svix": "^1.96.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

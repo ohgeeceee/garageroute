@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Script from "next/script";
 import {
   MapPin,
   Calendar,
@@ -11,6 +12,7 @@ import {
   Leaf,
 } from "lucide-react";
 import { fetchSale } from "@/lib/api";
+import { saleJsonLd } from "@/lib/structured-data";
 import ItemCard from "@/components/ItemCard";
 import AddToRouteButton from "@/components/AddToRouteButton";
 import DynamicMap from "@/components/DynamicMap";
@@ -35,6 +37,11 @@ export default async function SaleDetailPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <Script
+        id={`sale-jsonld-${sale.id}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(saleJsonLd(sale)) }}
+      />
       <Link
         href="/sales"
         className="inline-flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900"

@@ -15,8 +15,10 @@ export async function GET() {
     reservations,
     alerts,
     pendingVerifications,
+    pendingSellerVerifications,
     recentSales,
     recentMessages,
+    recentSellerVerifications,
   ] = await Promise.all([
     prisma.sale.count(),
     prisma.item.count(),
@@ -25,6 +27,7 @@ export async function GET() {
     prisma.reservation.count(),
     prisma.alert.count(),
     prisma.sale.count({ where: { verified: false } }),
+    prisma.userVerification.count({ where: { status: "pending" } }),
     prisma.sale.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -47,6 +50,19 @@ export async function GET() {
         content: true,
         createdAt: true,
         sale: { select: { id: true, title: true } },
+      },
+    }),
+    prisma.userVerification.findMany({
+      where: { status: "pending" },
+      orderBy: { submittedAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        notes: true,
+        documentMime: true,
+        documentName: true,
+        submittedAt: true,
+        user: { select: { id: true, name: true, email: true, city: true, state: true } },
       },
     }),
   ]);
@@ -85,10 +101,12 @@ export async function GET() {
       reservations,
       alerts,
       pendingVerifications,
+      pendingSellerVerifications,
     },
     series,
     topCategories,
     recentSales,
     recentMessages,
+    recentSellerVerifications,
   });
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { haversineMiles } from "@/lib/distance";
 import { isInTimeWindow, type TimeWindow } from "@/lib/weekend";
+import { postSaleToFacebookPage } from "@/lib/bot/fbPost";
+import { notifyMatchingBuyersAsync } from "@/lib/bot/leadNotify";
 
 function normalizeSale<T extends { photos: string | string[] }>(
   sale: T
@@ -208,6 +210,54 @@ export async function POST(request: NextRequest) {
     },
     include: { items: true },
   });
+
+  // Fire-and-forget: auto-post to FB page + notify matching buyers.
+  // Failures here MUST NOT affect the API response — the sale is already saved.
+  try {
+    const itemNames = sale.items.map((i) => i.name);
+    const itemCategories = Array.from(
+      new Set(sale.items.map((i) => i.category).filter(Boolean))
+    );
+    const photosParsed =
+      typeof sale.photos === "string"
+        ? (JSON.parse(sale.photos || "[]") as string[])
+        : sale.photos;
+
+    postSaleToFacebookPage({
+      id: sale.id,
+      title: sale.title,
+      city: sale.city,
+      state: sale.state,
+      zip: sale.zip,
+      dates: sale.dates,
+      hours: sale.hours,
+      description: sale.description,
+      verified: sale.verified,
+      items: sale.items.map((i) => ({ name: i.name, price: i.price })),
+      photos: photosParsed,
+    }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("[scout:fb-post] background post failed:", err);
+    });
+
+    notifyMatchingBuyersAsync({
+      id: sale.id,
+      title: sale.title,
+      type: sale.type,
+      city: sale.city,
+      state: sale.state,
+      zip: sale.zip,
+      dates: sale.dates,
+      hours: sale.hours,
+      description: sale.description,
+      itemNames,
+      itemCategories,
+      itemCount: sale.items.length,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[scout:sales-hook] notification dispatch failed:", err);
+  }
 
   return NextResponse.json(normalizeSale(sale), { status: 201 });
 }

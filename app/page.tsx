@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Script from "next/script";
 import {
   Search,
   Map as MapIcon,
@@ -19,6 +20,10 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { fetchSales } from "@/lib/api";
+import {
+  organizationJsonLd,
+  websiteJsonLd,
+} from "@/lib/structured-data";
 import SaleCard from "@/components/SaleCard";
 import AlertSignup from "@/components/AlertSignup";
 import { HeroSearch } from "@/components/landing/HeroSearch";
@@ -101,6 +106,16 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col">
+      <Script
+        id="org-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
+      <Script
+        id="website-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+      />
       {/* ============= HERO ============= */}
       <section className="relative overflow-hidden bg-surface-0">
         {/* Subtle ambient gradients */}

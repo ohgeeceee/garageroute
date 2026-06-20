@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Calendar, Clock, CheckCircle, Sparkles } from "lucide-react";
 import { Sale } from "@/data/sales";
 import { formatDistance } from "@/lib/distance";
+import { placeholderDataUrl, isRemoteImageUrl } from "@/lib/image";
 import FavoriteButton from "@/components/FavoriteButton";
 
 type Props = {
@@ -15,13 +17,23 @@ export default function SaleCard({ sale, favoriteIds, loggedIn = false }: Props)
   const showVerified = sale.verified || sale.sellerVerifiedSeller;
   const isFavorited = favoriteIds ? favoriteIds.has(sale.id) : false;
 
+  // Cover photo with safe fallback to a deterministic placeholder so next/image
+  // never receives an empty src (which it rejects).
+  const cover = sale.photos[0] || "/placeholder-sale.svg";
+  const remote = isRemoteImageUrl(cover);
+
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md">
       <div className="relative h-44 bg-zinc-100">
-        <img
-          src={sale.photos[0] || "https://picsum.photos/400/300"}
+        <Image
+          src={cover}
           alt={sale.title}
-          className="h-full w-full object-cover"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          placeholder={remote ? "empty" : "blur"}
+          blurDataURL={remote ? undefined : placeholderDataUrl(4, 3)}
+          className="object-cover"
+          // Below-the-fold; lazy by default in next/image.
         />
         <span className="absolute left-3 top-3 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white">
           {sale.type}

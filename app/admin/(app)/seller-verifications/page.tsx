@@ -10,6 +10,11 @@ import {
   Inbox,
   Clock,
   ShieldCheck,
+  ShieldOff,
+  FileText,
+  Image as ImageIcon,
+  ExternalLink,
+  Download,
 } from "lucide-react";
 
 type Row = {
@@ -17,15 +22,29 @@ type Row = {
   status: string;
   notes: string;
   documentUrl: string;
+  documentPath: string;
+  documentName: string;
+  documentMime: string;
+  documentBytes: number;
   submittedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string;
   user: { id: string; name: string; email: string; city: string; state: string; createdAt: string };
 };
+
+function formatBytes(n: number): string {
+  if (!n) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
 
 export default function SellerVerificationsPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -54,7 +73,7 @@ export default function SellerVerificationsPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || "Failed.");
-      setToast({ kind: "ok", msg: status === "approved" ? "Approved — user can now post sales." : "Rejected." });
+      setToast({ kind: "ok", msg: status === "approved" ? "Approved — seller can now post sales." : "Rejected." });
       await load();
     } catch (e) {
       setToast({ kind: "err", msg: (e as Error).message });
@@ -74,7 +93,7 @@ export default function SellerVerificationsPage() {
         <p className="eyebrow">Trust &amp; Safety</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-surface-900">Seller verification queue</h2>
         <p className="mt-1 text-sm text-surface-600">
-          Approve sellers to let them post sales and unlock the verified badge.
+          Review ID documents and approve sellers to unlock the verified badge.
         </p>
       </header>
 
@@ -95,9 +114,13 @@ export default function SellerVerificationsPage() {
           {rows.map((r) => {
             const isBusy = busyId === r.id;
             const submittedAgo = relativeTime(r.submittedAt);
+            const hasUpload = !!r.documentPath;
+            const isOpen = expanded[r.id];
+            const isImage = r.documentMime.startsWith("image/");
+            const isPdf = r.documentMime === "application/pdf";
             return (
               <li key={r.id} className="card overflow-hidden">
-                <div className="grid gap-4 p-5 md:grid-cols-[1fr_280px]">
+                <div className="grid gap-4 p-5 md:grid-cols-[1fr_300px]">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-semibold text-surface-900">{r.user.name}</h3>
@@ -111,13 +134,76 @@ export default function SellerVerificationsPage() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-surface-500">Notes</p>
                       <p className="mt-1 whitespace-pre-wrap text-sm text-surface-800">{r.notes || <em className="text-surface-400">No notes provided.</em>}</p>
                     </div>
-                    {r.documentUrl && (
-                      <p className="mt-2 text-xs">
-                        <a href={r.documentUrl} target="_blank" rel="noreferrer" className="font-semibold text-brand-700 hover:underline">
-                          View submitted document →
+
+                    {/* Document viewer */}
+                    {hasUpload ? (
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-surface-500">ID document</p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setExpanded((p) => ({ ...p, [r.id]: !p[r.id] }))}
+                              className="text-xs font-semibold text-brand-700 hover:underline"
+                            >
+                              {isOpen ? "Hide" : "View"} →
+                            </button>
+                            <a
+                              href={`/api/admin/verifications/sellers/${r.id}/document`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-md border border-surface-200 px-2 py-1 text-xs font-semibold text-surface-700 hover:bg-surface-50"
+                              title="Open in new tab"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            <a
+                              href={`/api/admin/verifications/sellers/${r.id}/document`}
+                              download={r.documentName}
+                              className="inline-flex items-center gap-1 rounded-md border border-surface-200 px-2 py-1 text-xs font-semibold text-surface-700 hover:bg-surface-50"
+                              title="Download"
+                            >
+                              <Download className="h-3 w-3" />
+                            </a>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-xs">
+                          {isImage ? <ImageIcon className="h-4 w-4 text-surface-500" /> : <FileText className="h-4 w-4 text-surface-500" />}
+                          <span className="truncate font-medium text-surface-800">{r.documentName}</span>
+                          <span className="ml-auto text-surface-500">{r.documentMime} · {formatBytes(r.documentBytes)}</span>
+                        </div>
+                        {isOpen && (
+                          <div className="mt-2 overflow-hidden rounded-lg border border-surface-200 bg-surface-100">
+                            {isImage ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={`/api/admin/verifications/sellers/${r.id}/document`}
+                                alt={`ID for ${r.user.name}`}
+                                className="max-h-[480px] w-full object-contain"
+                              />
+                            ) : isPdf ? (
+                              <iframe
+                                src={`/api/admin/verifications/sellers/${r.id}/document`}
+                                className="h-[480px] w-full"
+                                title={`ID document for ${r.user.name}`}
+                              />
+                            ) : (
+                              <div className="p-6 text-center text-sm text-surface-500">
+                                Preview unavailable. <a href={`/api/admin/verifications/sellers/${r.id}/document`} className="font-semibold text-brand-700 hover:underline">Download</a> to view.
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : r.documentUrl ? (
+                      <p className="mt-3 text-xs">
+                        <a href={r.documentUrl} target="_blank" rel="noreferrer" className="font-semibold text-brand-700 hover:underline inline-flex items-center gap-1">
+                          View submitted document <ExternalLink className="h-3 w-3" />
                         </a>
                       </p>
+                    ) : (
+                      <p className="mt-3 text-xs italic text-warning-700">No document attached — review notes only.</p>
                     )}
+
                     <p className="mt-3 text-xs text-surface-500">Submitted {submittedAgo}</p>
                   </div>
 
@@ -136,7 +222,7 @@ export default function SellerVerificationsPage() {
                         Approve
                       </button>
                       <button onClick={() => decide(r.id, "rejected")} disabled={isBusy} className="btn btn-danger flex-1">
-                        <XCircle className="h-4 w-4" />
+                        <ShieldOff className="h-4 w-4" />
                         Reject
                       </button>
                     </div>

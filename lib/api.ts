@@ -1,6 +1,13 @@
 import { Sale } from "@/data/sales";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+// Server-side loopback: prefer INTERNAL_API_URL (e.g. http://localhost:3001),
+// then NEXT_PUBLIC_APP_URL, then localhost. The public URL is wrong here because
+// SSR runs on the server and would try to fetch itself via the public DNS —
+// which may not resolve back to this host.
+const baseUrl =
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "http://localhost:3000";
 
 function normalizeSale(sale: Record<string, unknown>): Sale {
   const photos =

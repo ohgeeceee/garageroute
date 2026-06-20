@@ -1,13 +1,23 @@
+import Image from "next/image";
 import { Item } from "@/data/sales";
+import { placeholderDataUrl, isRemoteImageUrl } from "@/lib/image";
 
 export default function ItemCard({ item }: { item: Item }) {
+  const src = item.photo || "/placeholder-item.svg";
+  const remote = isRemoteImageUrl(src);
   return (
     <div className="relative flex gap-4 rounded-lg border border-zinc-200 bg-white p-3 transition hover:shadow-sm">
-      <img
-        src={item.photo || "https://picsum.photos/200/200"}
-        alt={item.name}
-        className="h-20 w-20 rounded-md bg-zinc-100 object-cover"
-      />
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+        <Image
+          src={src}
+          alt={item.name}
+          fill
+          sizes="80px"
+          placeholder={remote ? "empty" : "blur"}
+          blurDataURL={remote ? undefined : placeholderDataUrl(2, 2)}
+          className="object-cover"
+        />
+      </div>
       <div className="flex flex-1 flex-col justify-center">
         <p
           className={`font-medium ${

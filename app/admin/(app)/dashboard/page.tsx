@@ -20,6 +20,9 @@ import {
   ShoppingBag,
   Search,
   Filter,
+  ShieldCheck,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 
 type Overview = {
@@ -31,6 +34,7 @@ type Overview = {
     reservations: number;
     alerts: number;
     pendingVerifications: number;
+    pendingSellerVerifications: number;
   };
   series: { date: string; label: string; sales: number }[];
   topCategories: { category: string; count: number }[];
@@ -49,6 +53,14 @@ type Overview = {
     content: string;
     createdAt: string;
     sale: { id: string; title: string };
+  }[];
+  recentSellerVerifications: {
+    id: string;
+    notes: string;
+    documentMime: string;
+    documentName: string;
+    submittedAt: string;
+    user: { id: string; name: string; email: string; city: string; state: string };
   }[];
 };
 
@@ -111,9 +123,16 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/admin/seller-verifications" className="btn btn-secondary btn-sm">
+            <ShieldCheck className="h-4 w-4" />
+            Seller verifications
+            {c.pendingSellerVerifications > 0 && (
+              <span className="badge badge-warning ml-1 !py-0">{c.pendingSellerVerifications}</span>
+            )}
+          </Link>
           <Link href="/admin/verifications" className="btn btn-secondary btn-sm">
             <BadgeCheck className="h-4 w-4" />
-            Review verifications
+            Sale verifications
             {c.pendingVerifications > 0 && (
               <span className="badge badge-warning ml-1 !py-0">{c.pendingVerifications}</span>
             )}
@@ -159,6 +178,54 @@ export default function AdminDashboardPage() {
           tone="success"
         />
       </div>
+
+      {/* Pending action notifications — only show when there's work to do */}
+      {(c.pendingSellerVerifications > 0 || c.pendingVerifications > 0) && (
+        <section className="grid gap-3 sm:grid-cols-2">
+          {c.pendingSellerVerifications > 0 && (
+            <Link
+              href="/admin/seller-verifications"
+              className="card group flex items-center gap-4 border-warning-200 bg-warning-50/60 p-4 transition hover:border-warning-300 hover:bg-warning-50"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warning-100 text-warning-700">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-surface-900">
+                  {c.pendingSellerVerifications} seller {c.pendingSellerVerifications === 1 ? "verification" : "verifications"} pending
+                </p>
+                <p className="text-xs text-surface-600">ID documents waiting for review</p>
+              </div>
+              <span className="badge badge-warning">
+                <Clock className="h-3 w-3" />
+                Action needed
+              </span>
+              <ArrowUpRight className="h-4 w-4 text-surface-400 group-hover:text-warning-700" />
+            </Link>
+          )}
+          {c.pendingVerifications > 0 && (
+            <Link
+              href="/admin/verifications"
+              className="card group flex items-center gap-4 border-info-200 bg-info-50/60 p-4 transition hover:border-info-300 hover:bg-info-50"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info-100 text-info-600">
+                <BadgeCheck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-surface-900">
+                  {c.pendingVerifications} sale {c.pendingVerifications === 1 ? "verification" : "verifications"} pending
+                </p>
+                <p className="text-xs text-surface-600">Listings waiting for review</p>
+              </div>
+              <span className="badge badge-info">
+                <Clock className="h-3 w-3" />
+                Review
+              </span>
+              <ArrowUpRight className="h-4 w-4 text-surface-400 group-hover:text-info-600" />
+            </Link>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Sales trend */}
@@ -337,6 +404,57 @@ export default function AdminDashboardPage() {
         </section>
       </div>
 
+      {/* Recent seller verifications */}
+      {data.recentSellerVerifications.length > 0 && (
+        <section className="card overflow-hidden">
+          <header className="flex items-center justify-between border-b border-surface-200 px-5 py-3">
+            <div>
+              <p className="eyebrow">Identity</p>
+              <h3 className="mt-0.5 text-base font-semibold text-surface-900">Pending seller verifications</h3>
+            </div>
+            <Link href="/admin/seller-verifications" className="text-xs font-semibold text-brand-700 hover:underline">
+              Review queue →
+            </Link>
+          </header>
+          <ul className="divide-y divide-surface-100">
+            {data.recentSellerVerifications.map((v) => (
+              <li key={v.id} className="flex items-center gap-4 p-4 hover:bg-surface-50 transition">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-xs uppercase">
+                  {v.user.name?.[0] ?? v.user.email[0]}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-surface-900">{v.user.name}</p>
+                    <span className="badge badge-warning !py-0">
+                      <Clock className="h-3 w-3" /> Awaiting
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-surface-500">
+                    {v.user.email}
+                    {v.user.city ? ` · ${v.user.city}${v.user.state ? `, ${v.user.state}` : ""}` : ""}
+                  </p>
+                  {v.notes && (
+                    <p className="mt-1 line-clamp-1 text-xs text-surface-700">{v.notes}</p>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-2 text-xs text-surface-500">
+                  {v.documentMime ? (
+                    v.documentMime.startsWith("image/") ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />
+                  ) : null}
+                  <span className="whitespace-nowrap">{relativeTime(v.submittedAt)}</span>
+                </div>
+                <Link
+                  href={`/admin/seller-verifications`}
+                  className="btn btn-secondary btn-sm shrink-0"
+                >
+                  Review
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* System status strip */}
       <section className="card p-5">
         <div className="flex items-center justify-between mb-3">
@@ -353,6 +471,8 @@ export default function AdminDashboardPage() {
           <StatusRow label="Database" status="ok" detail="SQLite · healthy" />
           <StatusRow label="Map provider" status="ok" detail="OpenStreetMap" />
           <StatusRow label="Payments" status="warn" detail="Stripe in mock mode" />
+          <StatusRow label="Storage" status="ok" detail="Local disk · STORAGE_DRIVER=local" />
+          <StatusRow label="Upload scanner" status="warn" detail="clamav not detected — install before launch" />
         </div>
       </section>
     </div>
