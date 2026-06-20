@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Sale {
+  id          String   @id @default(uuid())
+  title       String
+  type        String
+  address     String
+  city        String
+  state       String
+  zip         String
+  lat         Float
+  lng         Float
+  dates       String
+  hours       String
+  description String
+  seller      String
+  verified    Boolean  @default(false)
+  photos      String   @default("[]")
+  sellerToken       String   @unique @default(uuid())
+  sellerUserId      String?
+  sellerUser        User?    @relation("SaleToSellerUser", fields: [sellerUserId], references: [id], onDelete: SetNull)
+  impactKg          Float    @default(0)
+  donationRequested Boolean  @default(false)
+  donationStatus    String   @default("")
+  donationOrg       String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  items             Item[]
+  queues            Queue[]
+  messages          Message[]
+  reservations      Reservation[]
+  favorites         Favorite[]
+}
+
+model Item {
+  id        String  @id @default(uuid())
+  name      String
+  category  String
+  price     Float?
+  condition String
+  photo     String?
+  sold          Boolean @default(false)
+  saleId        String
+  sale          Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  reservations  Reservation[]
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  email     String
+  zip       String
+  category  String   @default("")
+  radius    Int      @default(25)
+  createdAt DateTime @default(now())
+}
+
+model Queue {
+  id        String   @id @default(uuid())
+  saleId    String
+  name      String
+  email     String
+  partySize Int      @default(1)
+  status    String   @default("waiting") // waiting, entered, cancelled
+  createdAt DateTime @default(now())
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  saleId    String
+  senderName String
+  senderEmail String
+  content   String
+  createdAt DateTime @default(now())
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model Reservation {
+  id                  String   @id @default(uuid())
+  saleId              String
+  itemId              String
+  buyerName           String
+  buyerEmail          String
+  amount              Float
+  status              String   @default("pending") // pending, paid, redeemed, refunded
+  paymentIntentId     String   @default("")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  sale                Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  item                Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actor     String   @default("admin")       // username/identifier performing the action
+  action    String                          // e.g. "sale.verify", "sale.delete", "sale.update"
+  entity    String   @default("sale")        // "sale" | "user" | "system" | etc
+  entityId  String   @default("")
+  metadata  String   @default("{}")          // JSON blob with extra context
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entity, entityId])
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String
+  name           String
+  city           String   @default("")
+  state          String   @default("")
+  zip            String   @default("")
+  status         String   @default("active")    // active | suspended | deleted
+  verifiedSeller Boolean  @default(false)
+  role           String   @default("user")      // user | admin
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions       Session[]
+  verifications  UserVerification[]
+  sales          Sale[]   @relation("SaleToSellerUser")
+  passwordResets PasswordReset[]
+  favorites      Favorite[]
+
+  homeLat        Float?
+  homeLng        Float?
+  homeZip        String?
+
+  @@index([status])
+  @@index([verifiedSeller])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  saleId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, saleId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ip        String   @default("")
+  userAgent String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model UserVerification {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         String    @default("pending")  // pending | approved | rejected | superseded
+  notes          String    @default("")
+  documentUrl    String    @default("")        // legacy: external URL
+  documentPath   String    @default("")        // local storage path, e.g. /uploads/verifications/<uuid>.jpg
+  documentName   String    @default("")        // original filename
+  documentMime   String    @default("")        // e.g. image/jpeg
+  documentBytes  Int       @default(0)         // file size in bytes
+  submittedAt    DateTime  @default(now())
+  reviewedAt     DateTime?
+  reviewedBy     String    @default("")
+
+  @@index([status, submittedAt])
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GarageRoute.com
 
-## Getting Started
+A Next.js prototype for a garage/yard sale discovery and route-planning platform. It differentiates from existing ad boards by letting buyers search **inside** sales for specific items and build an optimized Saturday driving route.
 
-First, run the development server:
+## Niche positioning
+
+- Searchable pre-sale inventory (items, prices, condition, photos)
+- Smart route planner with map + distance estimate
+- Verified seller badges
+- Real-time updates (UI ready for future WebSocket/API integration)
+- Mobile-first, modern UX
+
+## Tech stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **Maps:** Leaflet + OpenStreetMap
+- **Icons:** Lucide React
+- **Data:** Mock sales in `data/sales.ts`
+
+## Getting started
 
 ```bash
+cd garageroute
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Pages
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` — Landing page with features and featured sales
+- `/sales` — Browse/search sales with interactive map
+- `/sales/[id]` — Sale detail with item list and map
+- `/route` — Route planner / itinerary
+- `/post` — Post a sale form
+- `/about` — About the niche
 
-## Learn More
+## Domain
 
-To learn more about Next.js, take a look at the following resources:
+`GarageRoute.com` was verified as available through Verisign at the time of this build.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This is a functional frontend prototype. A production version would need:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- A backend/database for real listings
+- User authentication
+- Image uploads
+- Geocoding for addresses
+- Real routing API (e.g., OSRM, Mapbox, Google Directions)
+- Payment/verification flows

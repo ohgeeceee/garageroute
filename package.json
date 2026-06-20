@@ -6,21 +6,52 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "npx prisma db seed",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate",
+    "postinstall": "prisma generate",
+    "mobile:sync": "npx cap sync",
+    "mobile:ios": "npx cap open ios",
+    "mobile:android": "npx cap open android"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
+    "@prisma/client": "^6.19.3",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.21.0",
     "next": "16.2.9",
+    "prisma": "^6.19.3",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0",
+    "sharp": "^0.35.1",
+    "sonner": "^2.0.7",
+    "stripe": "^22.2.2",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^20.19.43",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/stripe": "^8.0.416",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

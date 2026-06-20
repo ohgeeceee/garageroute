@@ -1,0 +1,375 @@
+version: 1
+plan:
+  name: 'MiniMax Code core-feature advisor squad'
+  max_concurrency: 4
+  max_consecutive_failures: 2
+  max_cycles: 10
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers: [verifier]
+    audit_sample_rate: 0.0
+tasks:
+  - id: create-cron-advisor
+    title: 'Create cron-advisor agent'
+    assigned_to: general
+    verified_by: verifier
+    max_retries: 2
+    prompt: |
+      Create a new standalone advisor agent named `cron-advisor` at
+      `~/.mavis/agents/cron-advisor/`. Load the `create-agent` skill first
+      and follow it end-to-end. Platform is darwin, so read
+      `references/commands-macos-linux.md` for shell recipes.
+
+      Role of the agent (write this into agent.md):
+      - Owns the "cron" capability of MiniMax Code — recurring self-reminders,
+        scheduled background tasks, polling loops (CI / jobs / batch / human
+        reply waits).
+      - When the user asks any cron question (e.g. "how do I set a reminder?",
+        "can Mavis ping me every 30 minutes?", "how do I wait for CI?",
+        "schedule X"), the agent both explains the mechanism AND sets it up
+        via the `mavis cron` CLI.
+      - Reference skill to load: the `mavis` skill (its `cron` reference
+        section). Do NOT inline cron CLI flags; link to that reference.
+
+      Concrete steps:
+      1. Run `mavis agent info cron-advisor` first — if it returns info,
+         the name is taken; pick a new name and re-confirm.
+      2. Run:
+         mavis agent new cron-advisor \
+           --description "Specialist for MiniMax Code's cron / scheduled-task capability — recurring self-reminders, background polling, CI/job waits. Explains when to use cron and drives it end-to-end via the mavis skill." \
+           --display-name "Cron Advisor"
+      3. Replace `~/.mavis/agents/cron-advisor/agent.md` with a body that:
+         - Has YAML frontmatter with `name: cron-advisor` and the same
+           description string as above (single concrete sentence).
+         - Has a body with these four sections in order:
+           # Cron Advisor
+           ## Scope (owns: cron scheduling; hands off: routing/cron-policy
+             questions to the team-advisor)
+           ## How you work (load the `mavis` skill, use `mavis cron`
+             subcommands, verify the schedule fires)
+           ## Stop when (job is created, schedule is visible in
+             `mavis cron list`, and you've explained the result to the user)
+      4. Skip config.yaml / PERSONA.md / skills/ / hooks/ / crons/ unless
+         truly needed. The agent only needs agent.md.
+      5. Verify it boots: `mavis agent info cron-advisor` parses and
+         `mavis agent list --project "$PWD"` shows cron-advisor.
+
+      Report back:
+      - The exact path of agent.md
+      - The description string you wrote
+      - Confirmation that `mavis agent info cron-advisor` succeeded
+      - The first 10 lines of the final agent.md body
+    verify_prompt: |
+      Independently verify the `cron-advisor` agent.
+
+      Steps:
+      1. Read `~/.mavis/agents/cron-advisor/agent.md` end to end.
+      2. Confirm frontmatter parses: `name: cron-advisor` matches the folder,
+         second `---` closes the frontmatter, `description:` is a single
+         concrete sentence about cron (NOT "general-purpose" or vague).
+      3. Confirm the body states ownership of the cron / scheduled-task
+         capability and explicitly references the `mavis` skill (since that
+         is where cron lives).
+      4. Confirm a Stop-when section exists with a measurable condition
+         (job created + listed + explained), NOT "task is complete".
+      5. Run `mavis agent info cron-advisor` and confirm it succeeds
+         without frontmatter parse errors.
+      6. Run `mavis agent list --project "$PWD"` and confirm cron-advisor
+         appears in the output.
+
+      Report PASS or FAIL with cited file paths/lines and the captured
+      `mavis agent info` / list output. Do NOT grade the producer's
+      summary — re-derive everything from the filesystem.
+
+  - id: create-im-advisor
+    title: 'Create im-advisor agent'
+    assigned_to: general
+    verified_by: verifier
+    max_retries: 2
+    prompt: |
+      Create a new standalone advisor agent named `im-advisor` at
+      `~/.mavis/agents/im-advisor/`. Load the `create-agent` skill first
+      and follow it end-to-end. Platform is darwin, so read
+      `references/commands-macos-linux.md` for shell recipes.
+
+      Role of the agent (write this into agent.md):
+      - Owns MiniMax Code's instant-messaging integration capability —
+        primarily Feishu (Lark) via the `lark-tools` family of skills
+        (calendar, mail, docs, sheets, base, tasks, contacts, IM, vc,
+        minutes, drive, wiki, slides, whiteboard, workflow, approval,
+        attendance, event).
+      - When the user asks any IM/messaging question (e.g. "schedule a
+        meeting", "send a message to X", "find a doc about Y", "look up
+        Zhang San", "create a Base record"), the agent both explains the
+        available surfaces AND drives them end-to-end via lark-cli.
+      - Reference skills to load: `lark-tools` (umbrella), and the
+        specific lark-* sub-skill as needed (lark-calendar, lark-im,
+        lark-doc, etc.). Do NOT inline command syntax; link to those
+        references.
+      - WeChat: not yet wired into MiniMax Code. The agent must be
+        transparent about this — tell the user "WeChat isn't integrated
+        yet, but here's the Feishu path" rather than pretending.
+
+      Concrete steps:
+      1. Run `mavis agent info im-advisor` first — if it returns info,
+         the name is taken; pick a new name and re-confirm.
+      2. Run:
+         mavis agent new im-advisor \
+           --description "Specialist for MiniMax Code's IM integration — Feishu/Lark calendar, mail, docs, tasks, contacts, messaging, drive, wiki via lark-tools. Explains the available surfaces, picks the right one, and drives it end-to-end. WeChat is not yet integrated; flags honestly." \
+           --display-name "IM Advisor"
+      3. Replace `~/.mavis/agents/im-advisor/agent.md` with a body that:
+         - Has YAML frontmatter with `name: im-advisor` and the same
+           description string as above (single concrete sentence).
+         - Has a body with these four sections in order:
+           # IM Advisor
+           ## Scope (owns: Feishu/Lark integration via lark-tools; hands
+             off: agent-team routing on Feishu to team-advisor; non-Lark
+             channels like WeChat are not yet supported and must be
+             acknowledged as such)
+           ## How you work (load `lark-tools`, drill into the specific
+             lark-* sub-skill, follow its workflow, verify the action
+             took effect — calendar event created, message sent, doc
+             written)
+           ## Stop when (the action is confirmed in the relevant Lark
+             surface AND you've told the user what you did)
+      4. Skip config.yaml / PERSONA.md / skills/ / hooks/ / crons/ unless
+         truly needed.
+      5. Verify it boots: `mavis agent info im-advisor` parses and
+         `mavis agent list --project "$PWD"` shows im-advisor.
+
+      Report back:
+      - The exact path of agent.md
+      - The description string you wrote
+      - Confirmation that `mavis agent info im-advisor` succeeded
+      - The first 10 lines of the final agent.md body
+    verify_prompt: |
+      Independently verify the `im-advisor` agent.
+
+      Steps:
+      1. Read `~/.mavis/agents/im-advisor/agent.md` end to end.
+      2. Confirm frontmatter parses: `name: im-advisor` matches the folder,
+         second `---` closes the frontmatter, `description:` is a single
+         concrete sentence about Feishu/Lark integration (NOT vague).
+      3. Confirm the body explicitly references `lark-tools` (or a lark-*
+         sub-skill) as the execution surface.
+      4. Confirm the body acknowledges that WeChat is NOT integrated —
+         there must be a line that honestly says so (search for "WeChat"
+         in the file). A fabricated "supports WeChat" claim is a FAIL.
+      5. Confirm a Stop-when section exists with a measurable condition
+         (action confirmed in Lark surface + user informed), NOT "task is
+         complete".
+      6. Run `mavis agent info im-advisor` and confirm it succeeds
+         without frontmatter parse errors.
+      7. Run `mavis agent list --project "$PWD"` and confirm im-advisor
+         appears.
+
+      Report PASS or FAIL with cited file paths/lines and the captured
+      `mavis agent info` / list output.
+
+  - id: create-team-advisor
+    title: 'Create team-advisor agent'
+    assigned_to: general
+    verified_by: verifier
+    max_retries: 2
+    prompt: |
+      Create a new standalone advisor agent named `team-advisor` at
+      `~/.mavis/agents/team-advisor/`. Load the `create-agent` skill first
+      and follow it end-to-end. Platform is darwin, so read
+      `references/commands-macos-linux.md` for shell recipes.
+
+      Role of the agent (write this into agent.md):
+      - Owns MiniMax Code's multi-agent team capability — designing
+        rosters, writing team plan YAML, launching via `mavis team plan
+        run`, monitoring cycles, submitting decisions, cancelling when
+        needed.
+      - When the user asks any team question (e.g. "should I use a team
+        here?", "build me a squad of N agents for X", "monitor plan
+        plan_xyz", "what does this cycle report mean?"), the agent both
+        explains the routing and just does it.
+      - Reference skills to load: `mavis-team` (orchestration workflow),
+        and `create-agent` (when a new agent is part of the deliverable).
+        Do NOT inline YAML schema or platform commands; link to those
+        references.
+
+      Concrete steps:
+      1. Run `mavis agent info team-advisor` first — if it returns info,
+         the name is taken; pick a new name and re-confirm.
+      2. Run:
+         mavis agent new team-advisor \
+           --description "Specialist for MiniMax Code's multi-agent team capability — designs rosters, writes team plan YAML, launches plans, monitors cycles, submits decisions. Loads mavis-team and create-agent to explain the routing and just do it." \
+           --display-name "Team Advisor"
+      3. Replace `~/.mavis/agents/team-advisor/agent.md` with a body that:
+         - Has YAML frontmatter with `name: team-advisor` and the same
+           description string as above (single concrete sentence).
+         - Has a body with these four sections in order:
+           # Team Advisor
+           ## Scope (owns: roster design, plan YAML, plan launch/monitor/
+             decide/cancel; hands off: per-track implementation to coder /
+             general workers; handoff verification to verifier)
+           ## How you work (load `mavis-team`, run preflight, write YAML,
+             launch via `mavis team plan run`, monitor with status /
+             messages, intervene with steer / extend / unblock, submit
+             decisions per cycle)
+           ## Stop when (plan completes with PASS, all deliverables
+             accepted, decision recorded, and you've summarized the
+             outcome for the user)
+      4. Skip config.yaml / PERSONA.md / skills/ / hooks/ / crons/ unless
+         truly needed.
+      5. Verify it boots: `mavis agent info team-advisor` parses and
+         `mavis agent list --project "$PWD"` shows team-advisor.
+
+      Report back:
+      - The exact path of agent.md
+      - The description string you wrote
+      - Confirmation that `mavis agent info team-advisor` succeeded
+      - The first 10 lines of the final agent.md body
+    verify_prompt: |
+      Independently verify the `team-advisor` agent.
+
+      Steps:
+      1. Read `~/.mavis/agents/team-advisor/agent.md` end to end.
+      2. Confirm frontmatter parses: `name: team-advisor` matches the
+         folder, second `---` closes the frontmatter, `description:` is
+         a single concrete sentence about multi-agent team work (NOT
+         vague).
+      3. Confirm the body explicitly references `mavis-team` (and where
+         new agents are involved, `create-agent`) as the execution
+         surfaces.
+      4. Confirm the body covers the full lifecycle — design, launch,
+         monitor, decide — not just "write a plan".
+      5. Confirm a Stop-when section exists with a measurable condition
+         (plan completes + deliverables accepted + decision recorded),
+         NOT "task is complete".
+      6. Run `mavis agent info team-advisor` and confirm it succeeds
+         without frontmatter parse errors.
+      7. Run `mavis agent list --project "$PWD"` and confirm team-advisor
+         appears.
+
+      Report PASS or FAIL with cited file paths/lines and the captured
+      `mavis agent info` / list output.
+
+  - id: create-skill-advisor
+    title: 'Create skill-advisor agent'
+    assigned_to: general
+    verified_by: verifier
+    max_retries: 2
+    prompt: |
+      Create a new standalone advisor agent named `skill-advisor` at
+      `~/.mavis/agents/skill-advisor/`. Load the `create-agent` skill
+      first and follow it end-to-end. Platform is darwin, so read
+      `references/commands-macos-linux.md` for shell recipes.
+
+      Role of the agent (write this into agent.md):
+      - Owns MiniMax Code's skill system — designing, scaffolding,
+        refining, and evolving Mavis skills. Knows when to load which
+        built-in skill, when to create a new one, when to refine an
+        existing one, and when to file a signal/proposal via
+        `skill-evolution`.
+      - When the user asks any skill question (e.g. "I keep doing X —
+        should this be a skill?", "this skill is wrong, fix it",
+        "create a skill for Y", "how does skill X work?"), the agent
+        both explains the routing AND executes (load skill-creator,
+        skill-refiner, or skill-evolution as appropriate).
+      - Reference skills to load: `skill-creator` (new skill),
+        `skill-refiner` (existing skill fix), `skill-evolution`
+        (signal/proposal filing). Do NOT inline SKILL.md structure;
+        link to those references.
+
+      Concrete steps:
+      1. Run `mavis agent info skill-advisor` first — if it returns
+         info, the name is taken; pick a new name and re-confirm.
+      2. Run:
+         mavis agent new skill-advisor \
+           --description "Specialist for MiniMax Code's skill system — designs, scaffolds, and refines Mavis skills. Loads skill-creator, skill-refiner, and skill-evolution as appropriate, explains when to use which, and turns a repeated workflow into a reusable SKILL.md." \
+           --display-name "Skill Advisor"
+      3. Replace `~/.mavis/agents/skill-advisor/agent.md` with a body
+         that:
+         - Has YAML frontmatter with `name: skill-advisor` and the same
+           description string as above (single concrete sentence).
+         - Has a body with these four sections in order:
+           # Skill Advisor
+           ## Scope (owns: skill design, scaffolding, refinement,
+             evolution; hands off: agent-team plans for new agents to
+             team-advisor; bug fixes that aren't skill-shaped to coder)
+           ## How you work (decide create vs refine vs signal, load
+             the matching skill, follow its workflow end-to-end,
+             verify the skill parses / loads correctly via
+             `mavis skill list`)
+           ## Stop when (the skill file exists at the right path,
+             parses without errors, shows up in `mavis skill list`
+             for the relevant agent, and you've explained what
+             changed)
+      4. Skip config.yaml / PERSONA.md / skills/ / hooks/ / crons/
+         unless truly needed.
+      5. Verify it boots: `mavis agent info skill-advisor` parses
+         and `mavis agent list --project "$PWD"` shows skill-advisor.
+
+      Report back:
+      - The exact path of agent.md
+      - The description string you wrote
+      - Confirmation that `mavis agent info skill-advisor` succeeded
+      - The first 10 lines of the final agent.md body
+    verify_prompt: |
+      Independently verify the `skill-advisor` agent.
+
+      Steps:
+      1. Read `~/.mavis/agents/skill-advisor/agent.md` end to end.
+      2. Confirm frontmatter parses: `name: skill-advisor` matches
+         the folder, second `---` closes the frontmatter, `description:`
+         is a single concrete sentence about the skill system (NOT
+         vague).
+      3. Confirm the body explicitly references `skill-creator`,
+         `skill-refiner`, and `skill-evolution` as the three routing
+         branches (or at least names skill-creator as the primary).
+      4. Confirm a Stop-when section exists with a measurable
+         condition (skill file exists + parses + listed + explained),
+         NOT "task is complete".
+      5. Run `mavis agent info skill-advisor` and confirm it succeeds
+         without frontmatter parse errors.
+      6. Run `mavis agent list --project "$PWD"` and confirm
+         skill-advisor appears.
+
+      Report PASS or FAIL with cited file paths/lines and the captured
+      `mavis agent info` / list output.
+
+  - id: final-squad-check
+    title: 'Final squad routability check'
+    role: verify-as-task
+    assigned_to: verifier
+    depends_on:
+      - create-cron-advisor
+      - create-im-advisor
+      - create-team-advisor
+      - create-skill-advisor
+    max_retries: 1
+    prompt: |
+      Run the end-to-end squad check. Treat this as the final gate —
+      your verdict is the trust anchor for the plan.
+
+      Steps:
+      1. Run `mavis agent list --project "$PWD"` and confirm all four
+         agents appear: cron-advisor, im-advisor, team-advisor,
+         skill-advisor. If any is missing, FAIL.
+      2. For each of the four, run `mavis agent info <name>` and
+         capture the first 8 lines of output (so the user sees they're
+         live and well-formed).
+      3. Read all four agent.md files and confirm there is NO scope
+         overlap so severe that two agents would both claim a task.
+         Specifically:
+         - cron-advisor: cron only
+         - im-advisor: Feishu/Lark integration only
+         - team-advisor: multi-agent team only
+         - skill-advisor: skill system only
+         If two descriptions both claim "scheduled tasks" or both claim
+         "routing" without disambiguation, FAIL and quote the lines.
+      4. Confirm each agent has a `name:` line in its frontmatter that
+         matches its folder name exactly.
+      5. Confirm each agent's description is a single concrete sentence
+         (no "helpful assistant" / "general-purpose" / empty).
+
+      Report PASS or FAIL with:
+      - The captured first-8-lines for each agent
+      - The descriptions of all four (so the user can see how each
+        scopes itself)
+      - Any overlap concerns
+      - The exact `mavis agent list` output

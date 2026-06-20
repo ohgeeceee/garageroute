@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GarageRoute</string>
+    <string name="title_activity_main">GarageRoute</string>
+    <string name="package_name">com.garageroute.app</string>
+    <string name="custom_url_scheme">com.garageroute.app</string>
+</resources>
