@@ -92,7 +92,7 @@ export default function PressPage() {
                 within one business day.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="mailto:press@garageroute.com" className="btn btn-primary">
+                <a href="mailto:admin@garageroute.com" className="btn btn-primary">
                   <Mail className="h-4 w-4" aria-hidden="true" />
                   Contact press team
                 </a>
@@ -166,7 +166,7 @@ export default function PressPage() {
               </p>
             </div>
             <a
-              href="mailto:press@garageroute.com?subject=Press%20kit%20request"
+              href="mailto:admin@garageroute.com?subject=Press%20kit%20request"
               className="btn btn-secondary btn-sm"
             >
               <Download className="h-4 w-4" aria-hidden="true" />
@@ -212,10 +212,10 @@ export default function PressPage() {
           <p className="mt-6 text-xs text-surface-500">
             Looking for a custom asset or specific spokesperson? Email{" "}
             <a
-              href="mailto:press@garageroute.com"
+              href="mailto:admin@garageroute.com"
               className="font-semibold text-brand-700 hover:underline"
             >
-              press@garageroute.com
+              admin@garageroute.com
             </a>
             .
           </p>
@@ -242,17 +242,17 @@ export default function PressPage() {
                 <ContactRow
                   icon={Mail}
                   label="General press"
-                  value="press@garageroute.com"
+                  value="admin@garageroute.com"
                 />
                 <ContactRow
                   icon={Mail}
                   label="Partnerships"
-                  value="partners@garageroute.com"
+                  value="admin@garageroute.com"
                 />
                 <ContactRow
                   icon={Mail}
                   label="Investor relations"
-                  value="ir@garageroute.com"
+                  value="admin@garageroute.com"
                 />
               </div>
             </div>

@@ -285,7 +285,7 @@ export default function StatusPage() {
               something actually changes.
             </p>
             <a
-              href="mailto:status@garageroute.com?subject=Subscribe%20me%20to%20status%20updates"
+              href="mailto:admin@garageroute.com?subject=Subscribe%20me%20to%20status%20updates"
               className="btn btn-primary mt-6"
             >
               <Mail className="h-4 w-4" aria-hidden="true" />

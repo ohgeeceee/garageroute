@@ -83,10 +83,10 @@ const program = [
       <p>
         Found a security issue? Please email{" "}
         <a
-          href="mailto:security@garageroute.com"
+          href="mailto:admin@garageroute.com"
           className="font-semibold text-brand-700 hover:underline"
         >
-          security@garageroute.com
+          admin@garageroute.com
         </a>{" "}
         with reproduction steps. We respond within 24 hours and credit reporters
         in our public hall of fame (with permission).
@@ -118,10 +118,10 @@ const program = [
         We&apos;re working toward SOC 2 Type I in 2026. For enterprise
         partnership paperwork, email{" "}
         <a
-          href="mailto:trust@garageroute.com"
+          href="mailto:admin@garageroute.com"
           className="font-semibold text-brand-700 hover:underline"
         >
-          trust@garageroute.com
+          admin@garageroute.com
         </a>
         .
       </p>
@@ -224,7 +224,7 @@ export default function SecurityPage() {
                 compliance certifications we&apos;re working toward.
               </p>
               <a
-                href="mailto:security@garageroute.com"
+                href="mailto:admin@garageroute.com"
                 className="btn btn-primary mt-6"
               >
                 <Mail className="h-4 w-4" aria-hidden="true" />

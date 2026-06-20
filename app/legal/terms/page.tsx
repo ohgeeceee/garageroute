@@ -179,10 +179,10 @@ const sections: LegalSection[] = [
       <p>
         Questions about these Terms? Email{" "}
         <a
-          href="mailto:legal@garageroute.com"
+          href="mailto:admin@garageroute.com"
           className="font-semibold text-brand-700 hover:underline"
         >
-          legal@garageroute.com
+          admin@garageroute.com
         </a>
         .
       </p>
@@ -197,7 +197,7 @@ export default function TermsPage() {
       intro="The rules of the road. Plain-English summaries of what you can expect from us — and what we ask of you in return."
       lastUpdated="January 15, 2026"
       sections={sections}
-      contactEmail="legal@garageroute.com"
+      contactEmail="admin@garageroute.com"
     />
   );
 }

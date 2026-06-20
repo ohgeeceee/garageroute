@@ -141,17 +141,17 @@ export default function ContactPage() {
               <DirectContact
                 icon={Mail}
                 label="General"
-                value="hello@garageroute.com"
+                value="admin@garageroute.com"
               />
               <DirectContact
                 icon={ShieldCheck}
                 label="Trust &amp; safety"
-                value="trust@garageroute.com"
+                value="admin@garageroute.com"
               />
               <DirectContact
                 icon={Phone}
                 label="Press hotline"
-                value="press@garageroute.com"
+                value="admin@garageroute.com"
               />
             </div>
           </aside>
@@ -171,7 +171,7 @@ export default function ContactPage() {
                     We&apos;ll get back to you within one business day. If
                     it&apos;s urgent,{" "}
                     <a
-                      href="mailto:hello@garageroute.com"
+                      href="mailto:admin@garageroute.com"
                       className="font-semibold text-brand-700 hover:underline"
                     >
                       email us directly

@@ -249,7 +249,7 @@ export default function CareersPage() {
                   </ul>
                 </div>
                 <a
-                  href={`mailto:careers@garageroute.com?subject=Application: ${encodeURIComponent(
+                  href={`mailto:admin@garageroute.com?subject=Application: ${encodeURIComponent(
                     r.title
                   )}`}
                   className="btn btn-primary shrink-0"
@@ -265,10 +265,10 @@ export default function CareersPage() {
             <p className="text-sm text-surface-700">
               Not the right fit today? Email{" "}
               <a
-                href="mailto:careers@garageroute.com"
+                href="mailto:admin@garageroute.com"
                 className="font-semibold text-brand-700 hover:underline"
               >
-                careers@garageroute.com
+                admin@garageroute.com
               </a>{" "}
               with what you&apos;d love to work on. We read every note.
             </p>

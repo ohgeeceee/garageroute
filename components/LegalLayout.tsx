@@ -22,7 +22,7 @@ export default function LegalLayout({
   lastUpdated,
   toc,
   sections,
-  contactEmail = "legal@garageroute.com",
+  contactEmail = "admin@garageroute.com",
 }: LegalLayoutProps) {
   return (
     <div className="bg-surface-50">

@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
             <input className="input" defaultValue="GarageRoute" />
           </Field>
           <Field label="Contact email">
-            <input className="input" type="email" defaultValue="hello@garageroute.com" />
+            <input className="input" type="email" defaultValue="admin@garageroute.com" />
           </Field>
           <Field label="Default region">
             <select className="input" defaultValue="us-east">

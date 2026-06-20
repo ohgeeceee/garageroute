@@ -54,7 +54,7 @@ export default function Footer() {
             </p>
 
             <div className="mt-5 flex items-center gap-2">
-              <SocialLink href="mailto:hello@garageroute.com" label="Email">
+              <SocialLink href="mailto:admin@garageroute.com" label="Email">
                 <Mail className="h-4 w-4" aria-hidden="true" />
               </SocialLink>
               <SocialLink href="/press" label="Press">
@@ -100,7 +100,7 @@ export default function Footer() {
             </p>
           </div>
           <a
-            href="mailto:hello@garageroute.com?subject=Subscribe%20me%20to%20GarageRoute%20updates"
+            href="mailto:admin@garageroute.com?subject=Subscribe%20me%20to%20GarageRoute%20updates"
             className="btn btn-primary shrink-0"
           >
             Subscribe via email

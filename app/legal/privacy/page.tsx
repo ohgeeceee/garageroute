@@ -24,10 +24,10 @@ const sections: LegalSection[] = [
           need, and let you delete it whenever you want. If something is
           unclear, email us at{" "}
           <a
-            href="mailto:privacy@garageroute.com"
+            href="mailto:admin@garageroute.com"
             className="font-semibold text-brand-700 hover:underline"
           >
-            privacy@garageroute.com
+            admin@garageroute.com
           </a>{" "}
           and we&apos;ll explain.
         </p>
@@ -211,10 +211,10 @@ const sections: LegalSection[] = [
       <p>
         Privacy questions? Email{" "}
         <a
-          href="mailto:privacy@garageroute.com"
+          href="mailto:admin@garageroute.com"
           className="font-semibold text-brand-700 hover:underline"
         >
-          privacy@garageroute.com
+          admin@garageroute.com
         </a>
         . Our Data Protection Officer reviews every request.
       </p>
@@ -229,7 +229,7 @@ export default function PrivacyPage() {
       intro="We collect only what we need, we never sell your data, and we make it easy to delete everything. This page explains exactly what that means in practice."
       lastUpdated="January 15, 2026"
       sections={sections}
-      contactEmail="privacy@garageroute.com"
+      contactEmail="admin@garageroute.com"
     />
   );
 }
