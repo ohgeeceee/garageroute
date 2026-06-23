@@ -1,28 +1,328 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
+import { Suspense } from "react";
+import { headers } from "next/headers";
 import {
   Search,
   Map as MapIcon,
-  ShieldCheck,
   Clock,
   ArrowRight,
   Leaf,
   Package,
   Zap,
   Star,
-  TrendingUp,
-  Users,
   CheckCircle,
   Bell,
   Recycle,
   Wallet2,
   Sparkles,
   BadgeCheck,
+  Calendar,
 } from "lucide-react";
-import { fetchSales } from "@/lib/api";
+import {
+  organizationJsonLd,
+  websiteJsonLd,
+} from "@/lib/structured-data";
 import SaleCard from "@/components/SaleCard";
 import AlertSignup from "@/components/AlertSignup";
 import { HeroSearch } from "@/components/landing/HeroSearch";
 import { StatCounter } from "@/components/landing/StatCounter";
+import StateHero from "@/components/StateHero";
+import StatePicker from "@/components/StatePicker";
+import StateSignupForm from "@/components/StateSignupForm";
+import { prisma } from "@/lib/prisma";
+import { fetchSales } from "@/lib/api";
+import type { Sale, Item } from "@/data/sales";
+
+// Revalidate the bare-domain landing page every 60s. The state-subdomain
+// branch and HeroSearch client component render fine under ISR.
+export const revalidate = 60;
+
+// Fields the home-page SaleCard + stats actually read. Keep in sync with
+// components/SaleCard.tsx. `sellerUser` joins User.verifiedSeller.
+const HOME_SALE_SELECT = {
+  id: true,
+  title: true,
+  type: true,
+  address: true,
+  city: true,
+  state: true,
+  zip: true,
+  dates: true,
+  hours: true,
+  verified: true,
+  photos: true,
+  liveNow: true,
+  featured: true,
+  featuredExpiresAt: true,
+  impactKg: true,
+  sellerUser: { select: { verifiedSeller: true } },
+  items: { select: { id: true, name: true }, orderBy: { id: "asc" } },
+} as const;
+
+type HomeSale = {
+  id: string;
+  title: string;
+  type: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  dates: string;
+  hours: string;
+  verified: boolean;
+  photos: string[];
+  liveNow: boolean;
+  featured: boolean;
+  featuredExpiresAt: string | null;
+  impactKg: number;
+  sellerVerifiedSeller: boolean;
+  items: { id: string; name: string }[];
+};
+
+function parsePhotos(raw: string | string[]): string[] {
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeHomeSale(row: {
+  id: string;
+  title: string;
+  type: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  dates: string;
+  hours: string;
+  verified: boolean;
+  photos: string | string[];
+  liveNow: boolean;
+  featured: boolean;
+  featuredExpiresAt: Date | null;
+  impactKg: number;
+  sellerUser: { verifiedSeller: boolean } | null;
+  items: { id: string; name: string }[];
+}): HomeSale {
+  return {
+    id: row.id,
+    title: row.title,
+    type: row.type,
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    zip: row.zip,
+    dates: row.dates,
+    hours: row.hours,
+    verified: row.verified,
+    photos: parsePhotos(row.photos),
+    liveNow: row.liveNow,
+    featured: row.featured,
+    featuredExpiresAt: row.featuredExpiresAt
+      ? row.featuredExpiresAt.toISOString()
+      : null,
+    impactKg: row.impactKg,
+    sellerVerifiedSeller: row.sellerUser?.verifiedSeller ?? false,
+    items: row.items,
+  };
+}
+
+async function loadHomeData(): Promise<{
+  featuredSales: HomeSale[];
+  activeSales: number;
+  totalItems: number;
+  totalImpact: number;
+}> {
+  const where = { hidden: { not: true } } as const;
+
+  // Fire featured sales, aggregates, and item count in parallel.
+  const [sales, aggregate, totalItems] = await Promise.all([
+    prisma.sale.findMany({
+      where,
+      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+      take: 3,
+      select: HOME_SALE_SELECT,
+    }),
+    prisma.sale.aggregate({
+      where,
+      _count: { _all: true },
+      _sum: { impactKg: true },
+    }),
+    prisma.item.count({
+      where: { sale: { is: { hidden: { not: true } } } },
+    }),
+  ]);
+
+  return {
+    featuredSales: sales.map(normalizeHomeSale),
+    activeSales: aggregate._count._all,
+    totalItems,
+    totalImpact: aggregate._sum.impactKg ?? 0,
+  };
+}
+
+function HomeDataFallback() {
+  // Renders skeleton placeholders in the three sections that consume the
+  // data: the dark stats strip (after hero), the impact callout, and the
+  // "Sales happening now" grid. Pure CSS, no client JS.
+  return (
+    <>
+      <section className="relative z-10 -mt-10 mx-4 sm:mx-6 lg:mx-auto lg:max-w-6xl">
+        <div className="rounded-2xl bg-surface-900 px-6 py-8 shadow-2xl ring-1 ring-surface-900/10 sm:px-10 lg:px-14">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-9 w-20 rounded bg-white/10" />
+                <div className="mt-3 h-3 w-24 rounded bg-white/10" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="bg-surface-50 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-72 animate-pulse rounded-xl border border-surface-200 bg-white"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+async function HomeDataSections() {
+  const { featuredSales, activeSales, totalItems, totalImpact } =
+    await loadHomeData();
+  return (
+    <>
+      {/* STATS STRIP — uses activeSales/totalItems/totalImpact */}
+      <section className="relative z-10 -mt-10 mx-4 sm:mx-6 lg:mx-auto lg:max-w-6xl">
+        <div className="rounded-2xl bg-surface-900 px-6 py-8 shadow-2xl ring-1 ring-surface-900/10 sm:px-10 lg:px-14">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            <StatCounter value={activeSales} label="sales this weekend" />
+            <StatCounter value={totalItems} label="items listed" />
+            <StatCounter
+              value={totalImpact}
+              decimals={1}
+              suffix=" kg"
+              label="waste diverted"
+            />
+            <StatCounter value={97} suffix="%" label="say it saves gas" />
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED SALES GRID — uses featuredSales */}
+      <section className="bg-surface-50 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <p className="eyebrow">This weekend</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-surface-900">
+                Sales happening now
+              </h2>
+            </div>
+            <Link
+              href="/sales"
+              className="hidden text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline sm:inline-flex items-center gap-1"
+            >
+              View all sales
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredSales.map((sale) => (
+              <SaleCard key={sale.id} sale={sale as unknown as Sale} />
+            ))}
+          </div>
+
+          {featuredSales.length === 0 && (
+            <p className="mt-4 text-surface-500">
+              No featured sales available yet — check back soon.
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* IMPACT CALLOUT — uses totalImpact, totalItems */}
+      <section className="bg-surface-50 py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-8 rounded-2xl border border-success-200 bg-success-50 p-8 sm:p-10 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-success-100 text-success-700">
+                <Leaf className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <h2 className="mt-4 text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
+                A Saturday drive that pays you back.
+              </h2>
+              <p className="mt-2 max-w-2xl text-surface-700">
+                Every item sold through GarageRoute keeps reusable goods out of
+                the landfill. Track your household&apos;s diverted-waste total
+                in your dashboard.
+              </p>
+            </div>
+            <div className="flex items-center justify-start gap-8 lg:justify-end">
+              <div>
+                <div className="text-4xl font-extrabold text-success-700">
+                  {Math.round(totalImpact).toLocaleString()}
+                </div>
+                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-surface-600">
+                  kg diverted
+                </div>
+              </div>
+              <div>
+                <div className="text-4xl font-extrabold text-success-700">
+                  {totalItems.toLocaleString()}
+                </div>
+                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-surface-600">
+                  items rehomed
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+// Per-page metadata. Without this the layout title template wins, but the
+// render was leaking an admin-internal label into the customer SERP —
+// pinning it here guarantees the public-facing headline wins.
+export const metadata: Metadata = {
+  title: "GarageRoute — Find garage sales. Plan the route.",
+  description:
+    "Discover local garage and estate sales, preview items, and build optimized weekend routes.",
+  alternates: {
+    canonical: "https://garageroute.com",
+  },
+  openGraph: {
+    title: "GarageRoute — Find garage sales. Plan the route.",
+    description:
+      "Preview items inside local garage sales and build an optimized Saturday route.",
+    type: "website",
+    url: "https://garageroute.com",
+    siteName: "GarageRoute",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GarageRoute — Find garage sales. Plan the route.",
+    description:
+      "Preview items inside local garage sales and build an optimized Saturday route.",
+  },
+};
 
 const features = [
   {
@@ -85,22 +385,170 @@ const testimonials = [
 const partnerLogos = ["Northside", "Maple St.", "Lakeshore", "Birchwood", "Heritage", "Foxglove"];
 
 export default async function Home() {
-  let featuredSales: Awaited<ReturnType<typeof fetchSales>> = [];
-  let totalImpact = 0;
-  let totalItems = 0;
-  let activeSales = 0;
-  try {
-    const allSales = await fetchSales();
-    featuredSales = allSales.slice(0, 3);
-    totalImpact = allSales.reduce((sum, s) => sum + (s.impactKg || 0), 0);
-    totalItems = allSales.reduce((sum, s) => sum + s.items.length, 0);
-    activeSales = allSales.length;
-  } catch {
-    featuredSales = [];
+  const reqHeaders = await headers();
+  const stateSlug = reqHeaders.get("x-state-slug");
+  const stateName = reqHeaders.get("x-state-name");
+
+  // --- State subdomain: live → scoped landing ---
+  if (stateSlug && stateName) {
+    const state = await prisma.state.findUnique({
+      where: { slug: stateSlug.toLowerCase() },
+    });
+
+    if (state) {
+      const isLive = state.status === "live";
+
+      if (isLive) {
+        const targetCities: string[] = JSON.parse(state.targetCities || "[]");
+        const stateSales = await fetchSales().catch(() => []).then((all) =>
+          all.filter((s) => s.state.toLowerCase() === stateName.toLowerCase()).slice(0, 3)
+        );
+        return (
+          <div className="flex flex-col">
+            <StateHero
+              state={{
+                name: state.name,
+                abbreviation: state.abbreviation,
+                tagline: state.tagline || `Find garage sales in ${state.name}`,
+                saleCount: stateSales.length,
+                targetCities,
+              }}
+            />
+            {/* State-scoped "Top sales" grid */}
+            <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-surface-900">
+                  Top sales in {state.name}
+                </h2>
+                <p className="mt-1 text-surface-600">
+                  Weekend garage, estate, and yard sales near you.
+                </p>
+              </div>
+              {stateSales.length > 0 ? (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {stateSales.map((sale) => (
+                    <SaleCard key={sale.id} sale={sale} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-surface-200 bg-white p-8 text-center">
+                  <p className="font-medium text-surface-700">No sales posted yet in {state.name}.</p>
+                  <Link href="/post" className="btn btn-primary mt-4 inline-flex">
+                    Be the first to post
+                  </Link>
+                </div>
+              )}
+              <div className="mt-8 text-center">
+                <Link href="/sales" className="btn btn-secondary">
+                  Browse all {state.name} sales
+                </Link>
+              </div>
+            </section>
+            <section className="bg-surface-50 py-16">
+              <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <AlertSignup stateContext={stateName} />
+              </div>
+            </section>
+          </div>
+        );
+      }
+
+      // Non-live subdomain → coming-soon page content
+      const targetCities: string[] = JSON.parse(state.targetCities || "[]");
+      const estimatedMonth = (() => {
+        if (state.launchDate) {
+          return new Date(state.launchDate).toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+          });
+        }
+        const now = new Date();
+        now.setMonth(now.getMonth() + Math.max(1, state.sortOrder));
+        return now.toLocaleString("en-US", { month: "long", year: "numeric" });
+      })();
+
+      return (
+        <div className="flex flex-col">
+          <StateHero
+            state={{
+              name: state.name,
+              abbreviation: state.abbreviation,
+              tagline: state.tagline || `GarageRoute is coming to ${state.name}`,
+              saleCount: 0,
+              targetCities,
+            }}
+          />
+          <section className="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
+            <div className="card p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="h-5 w-5 text-brand-600" aria-hidden="true" />
+                <span className="text-sm font-medium text-brand-700">
+                  {state.status === "seeding" ? "Seeding" : "Coming soon"}
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold text-surface-900">
+                {state.name} is on the map.
+              </h2>
+              <p className="mt-3 text-surface-600 leading-relaxed">
+                We&apos;re building the garage sale network in{" "}
+                <strong className="font-semibold text-surface-900">{state.name}</strong>. Our
+                team is scouting neighborhoods, partnering with local communities, and
+                preparing to launch — with verified sellers, item search, and route
+                planning from day one.
+              </p>
+              {targetCities.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-surface-700 mb-2">
+                    First target cities:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {targetCities.map((city) => (
+                      <span key={city} className="badge badge-brand">
+                        {city}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-6 flex items-center gap-2 text-sm text-surface-600">
+                <span className="font-medium">Expected launch:</span>
+                <span className="font-semibold text-surface-900">{estimatedMonth}</span>
+              </div>
+              <div className="mt-8 border-t border-surface-200 pt-8">
+                <p className="text-sm text-surface-600 mb-4">
+                  Be the first to know when {state.name} goes live:
+                </p>
+                <div className="max-w-sm">
+                  <StateSignupForm stateSlug={state.slug} stateName={state.name} />
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
   }
+
+  // --- Bare domain → national landing + StatePicker ---
+  // The featured grid + stats are loaded inside <Suspense> below so the hero
+  // streams immediately. We still need the state list to render the picker.
+  const allStates = await prisma.state.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: { slug: true, name: true, status: true },
+  });
 
   return (
     <div className="flex flex-col">
+      <Script
+        id="org-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
+      <Script
+        id="website-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+      />
       {/* ============= HERO ============= */}
       <section className="relative overflow-hidden bg-surface-0">
         {/* Subtle ambient gradients */}
@@ -169,33 +617,32 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============= STATS STRIP ============= */}
-      <section className="relative z-10 -mt-10 mx-4 sm:mx-6 lg:mx-auto lg:max-w-6xl">
-        <div className="rounded-2xl bg-surface-900 px-6 py-8 shadow-2xl ring-1 ring-surface-900/10 sm:px-10 lg:px-14">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            <StatCounter value={activeSales} label="sales this weekend" />
-            <StatCounter value={totalItems} label="items listed" />
-            <StatCounter value={totalImpact} decimals={1} suffix=" kg" label="waste diverted" />
-            <StatCounter value={97} suffix="%" label="say it saves gas" />
-          </div>
-        </div>
-      </section>
+      {/* Data-dependent sections (stats + featured + impact) stream in via
+          Suspense so the hero renders immediately. */}
+      <Suspense fallback={<HomeDataFallback />}>
+        <HomeDataSections />
+      </Suspense>
 
-      {/* ============= TRUST LOGOS ============= */}
+      {/* ============= TRUST LOGOS + STATE PICKER ============= */}
       <section className="bg-surface-0 py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs uppercase tracking-[0.2em] text-surface-500 font-semibold mb-6">
-            Hosting the weekend hunts of neighbors in
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
-            {partnerLogos.map((name) => (
-              <span
-                key={name}
-                className="text-lg font-semibold tracking-tight text-surface-400 select-none"
-              >
-                {name}
-              </span>
-            ))}
+          <div className="mb-6 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-surface-500 font-semibold">
+                Live now in
+              </p>
+              <StatePicker states={allStates} />
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
+              {partnerLogos.map((name) => (
+                <span
+                  key={name}
+                  className="text-lg font-semibold tracking-tight text-surface-400 select-none"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -260,44 +707,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============= IMPACT CALLOUT ============= */}
-      <section className="bg-surface-50 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-8 rounded-2xl border border-success-200 bg-success-50 p-8 sm:p-10 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-success-100 text-success-700">
-                <Leaf className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <h2 className="mt-4 text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
-                A Saturday drive that pays you back.
-              </h2>
-              <p className="mt-2 max-w-2xl text-surface-700">
-                Every item sold through GarageRoute keeps reusable goods out of the
-                landfill. Track your household&apos;s diverted-waste total in your dashboard.
-              </p>
-            </div>
-            <div className="flex items-center justify-start gap-8 lg:justify-end">
-              <div>
-                <div className="text-4xl font-extrabold text-success-700">
-                  {Math.round(totalImpact).toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-surface-600">
-                  kg diverted
-                </div>
-              </div>
-              <div>
-                <div className="text-4xl font-extrabold text-success-700">
-                  {totalItems.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-surface-600">
-                  items rehomed
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ============= TESTIMONIALS ============= */}
       <section className="bg-surface-0 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -333,49 +742,6 @@ export default async function Home() {
                 </figcaption>
               </figure>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============= FEATURED SALES ============= */}
-      <section className="bg-surface-50 py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between gap-4 flex-wrap">
-            <div>
-              <p className="eyebrow">This weekend</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-surface-900">
-                Sales happening now
-              </h2>
-            </div>
-            <Link
-              href="/sales"
-              className="hidden text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline sm:inline-flex items-center gap-1"
-            >
-              View all sales
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredSales.map((sale) => (
-              <SaleCard key={sale.id} sale={sale} />
-            ))}
-          </div>
-
-          {featuredSales.length === 0 && (
-            <p className="mt-4 text-surface-500">
-              No featured sales available yet — check back soon.
-            </p>
-          )}
-
-          <div className="mt-6 text-center sm:hidden">
-            <Link
-              href="/sales"
-              className="inline-flex items-center gap-1 text-sm font-bold text-brand-700 hover:underline"
-            >
-              View all sales
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
           </div>
         </div>
       </section>
