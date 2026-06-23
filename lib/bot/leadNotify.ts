@@ -275,30 +275,23 @@ async function findWishlistMatches(sale: NotifiableSale): Promise<{ email: strin
 /**
  * Find SavedSearch rows that match the sale.
  *
- * Matching rules:
- *   - zip matches the sale's zip exactly (radius is aspirational — we don't
- *     geocode every search; refine to distance in a follow-up).
- *   - if category is set on the search, at least one item in the sale has
- *     that category.
+ * STUB (2026-06-23): Phase 10/11 migration changed SavedSearch from
+ * (zip, category, radius, active) → (name, query JSON, notifyEmail, frequency).
+ * The old field-by-field query is no longer compatible with the deployed
+ * Prisma client (PrismaClientValidationError: Unknown argument `zip`).
  *
- * Returns the search tuple alongside the matched email so the email body
- * can tell the recipient why they were alerted.
+ * Returning empty so sale creation doesn't crash while a real Phase 10/11
+ * match function gets written (parse `query` JSON, match on zip+category
+ * inside it, send via `savedSearchEmail`). Alerts + wishlist paths above
+ * still work.
  */
 async function findSavedSearchMatches(
   sale: NotifiableSale,
 ): Promise<{ email: string; zip: string; category: string; radius: number }[]> {
   if (!sale.zip) return [];
-  const searches = await prisma.savedSearch.findMany({
-    where: { zip: sale.zip, active: true },
-    select: { email: true, zip: true, category: true, radius: true },
-    take: 500,
-  });
-
-  return searches.filter((s) => {
-    if (!s.category || s.category.trim() === "") return true;
-    const wanted = s.category.trim().toLowerCase();
-    return sale.itemCategories.some((c) => c.toLowerCase() === wanted);
-  });
+  // TODO(saved-search-v2): rebuild against Phase 10/11 schema
+  // (name/query/notifyEmail/frequency). For now, skip silently.
+  return [];
 }
 
 /**
@@ -307,7 +300,7 @@ async function findSavedSearchMatches(
 export function notifyMatchingBuyersAsync(sale: NotifiableSale): void {
   // Don't await — let the API response return immediately.
   notifyMatchingBuyers(sale).catch((err) => {
-    // eslint-disable-next-line no-console
+     
     console.error("[scout:lead-notify] crashed:", err);
   });
 }
@@ -331,7 +324,7 @@ export async function notifyMatchingBuyers(sale: NotifiableSale): Promise<Notify
   try {
     alerts = await findAlertMatches(sale);
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error("[scout:lead-notify] findAlertMatches failed:", err);
   }
 
@@ -340,7 +333,7 @@ export async function notifyMatchingBuyers(sale: NotifiableSale): Promise<Notify
   try {
     wishlists = await findWishlistMatches(sale);
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error("[scout:lead-notify] findWishlistMatches failed:", err);
   }
 
@@ -349,7 +342,7 @@ export async function notifyMatchingBuyers(sale: NotifiableSale): Promise<Notify
   try {
     savedSearches = await findSavedSearchMatches(sale);
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error("[scout:lead-notify] findSavedSearchMatches failed:", err);
   }
 
@@ -448,21 +441,11 @@ export async function notifyMatchingBuyers(sale: NotifiableSale): Promise<Notify
     }
 
     const rendered = savedSearchEmail({
-      sale: {
-        id: sale.id,
-        title: sale.title,
-        type: sale.type,
-        city: sale.city,
-        state: sale.state,
-        zip: sale.zip,
-        dates: sale.dates,
-        hours: sale.hours,
-        description: sale.description,
-        itemNames: sale.itemNames,
-        itemCount: sale.itemCount,
-      },
-      matchedOn,
-      search: { zip: s.zip, category: s.category, radius: s.radius },
+      email: s.email,
+      saleTitle: sale.title,
+      saleUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://garageroute.com"}/sales/${sale.id}`,
+      saleCity: sale.city,
+      saleState: sale.state,
     });
 
     const result = await sendEmail({
@@ -489,7 +472,7 @@ export async function notifyMatchingBuyers(sale: NotifiableSale): Promise<Notify
     }
   }
 
-  // eslint-disable-next-line no-console
+   
   console.log(
     `[scout:lead-notify] sale=${sale.id} alerts=${summary.alertMatches} wishlist=${summary.wishlistMatches} saved=${summary.savedSearchMatches} sent=${summary.emailsSent} queued=${summary.emailsQueued} skipped=${summary.skipped}`
   );
