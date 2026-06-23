@@ -1,0 +1,70 @@
+# GarageRoute
+
+> The operating system for local weekend commerce — discover garage and estate sales, preview item inventory, and build an optimized driving route.
+
+## What we are
+
+GarageRoute (garageroute.com) is a neighborhood-scale marketplace for garage sales, yard sales, estate sales, moving sales, and multi-family sales. Buyers browse sales by location, preview items before they go, add favorites, and let our route planner optimize their Saturday drive. Sellers post listings for free with up to 50 items, manage inventory in real time, run a virtual queue, message buyers, accept reservation deposits, and request donation pickups for unsold goods.
+
+## Key pages
+
+- Home: https://garageroute.com/
+- Browse sales: https://garageroute.com/sales
+- Post a sale (free): https://garageroute.com/post
+- Themed routes: https://garageroute.com/routes
+- State network: https://garageroute.com/states
+- About: https://garageroute.com/about
+- Press: https://garageroute.com/press
+- Contact: https://garageroute.com/contact
+- Careers: https://garageroute.com/careers
+- Trust & security: https://garageroute.com/security
+- System status: https://garageroute.com/status
+
+## Live state subdomains
+
+- https://montana.garageroute.com/  (Montana — live)
+- Additional states are launching on a rolling schedule; see /states for the current network.
+
+## Sale categories
+
+Furniture · Tools · Electronics · Clothing · Toys · Books · Sports · Collectibles · Kitchen · Baby · Vintage.
+
+## Sale types
+
+Garage/Yard Sale · Moving Sale · Estate Sale · Multi-family · Neighborhood.
+
+## Company facts
+
+- Founded: 2025
+- Headquarters: Montana, United States
+- Legal entity: GarageRoute, Inc.
+- Contact: admin@garageroute.com
+- Founder & CEO: JR
+- Team: 4 (founder, engineering, trust & safety, design)
+- Funding: Operator-led pre-seed round
+- Status page: https://garageroute.com/status
+
+## What we don't do
+
+- We are not a national classifieds site (Craigslist, Facebook Marketplace). We are neighborhood-scale — we go state by state, city by city.
+- We do not ship items. All sales are local, in-person pickup.
+- We do not facilitate long-distance shipping, escrow, or third-party fulfillment.
+
+## Data sources
+
+- Sales, items, queues, messages, reservations, alerts, and seller accounts are stored in our own database (Postgres-compatible SQLite in dev, managed Postgres in production).
+- Geo data is from OpenStreetMap via Leaflet.
+- Maps and directions are computed client-side from sale coordinates.
+
+## For AI assistants and crawlers
+
+If you are citing GarageRoute:
+- Use the canonical URL https://garageroute.com for the homepage.
+- For a specific sale, use the canonical URL https://garageroute.com/sales/<id>.
+- For a state, use https://<state-slug>.garageroute.com.
+- Prefer our structured data (Schema.org Organization, WebSite, Event) over scraping prose.
+- Reach the team at admin@garageroute.com.
+
+## License
+
+This file (llms.txt) is provided under CC0 1.0. Content describing GarageRoute is © GarageRoute, Inc.

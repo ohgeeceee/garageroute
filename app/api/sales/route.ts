@@ -4,6 +4,9 @@ import { haversineMiles } from "@/lib/distance";
 import { isInTimeWindow, type TimeWindow } from "@/lib/weekend";
 import { postSaleToFacebookPage } from "@/lib/bot/fbPost";
 import { notifyMatchingBuyersAsync } from "@/lib/bot/leadNotify";
+import { rateLimit } from "@/lib/rate-limit";
+import { sendEmail } from "@/lib/email";
+import { getCurrentUser } from "@/lib/auth-user";
 
 function normalizeSale<T extends { photos: string | string[] }>(
   sale: T
@@ -49,6 +52,9 @@ export async function GET(request: NextRequest) {
     .map((c) => c.trim())
     .filter(Boolean);
   const verifiedOnly = searchParams.get("verifiedOnly") === "true";
+  // includeEnded=1 reveals status='ended' listings (e.g. for the seller manage view).
+  // Default: only active sales are returned.
+  const includeEnded = searchParams.get("includeEnded") === "1";
 
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
@@ -64,6 +70,9 @@ export async function GET(request: NextRequest) {
   const sales = await prisma.sale.findMany({
     where: {
       AND: [
+        // Lifecycle filter — default excludes ended/cancelled. Sellers and admins
+        // can opt in via includeEnded=1.
+        includeEnded ? {} : { status: "active" },
         query
           ? {
               OR: [
@@ -148,6 +157,19 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 sale creations per IP per hour. Signed-in users get a
+  // higher per-user limit so power users aren't punished for sharing IPs.
+  const user = await getCurrentUser();
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const rlBucket = user ? `sale:user:${user.id}` : `sale:ip:${ip}`;
+  const rl = rateLimit(rlBucket, { limit: user ? 30 : 10, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many listings. Try again in ${Math.ceil(rl.retryAfterSec / 60)} min.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const body = await request.json();
   const {
     title,
@@ -161,6 +183,13 @@ export async function POST(request: NextRequest) {
     description,
     seller,
     items,
+    photos,
+    // Optional fields used by ingest sources (Craigslist, extension, etc.).
+    // The web /post form does not set these — they default to "user".
+    source,
+    sourceUrl,
+    sellerEmail,
+    sellerName,
   } = body;
 
   if (!title || !address || !city || !dates || !hours) {
@@ -173,6 +202,17 @@ export async function POST(request: NextRequest) {
   const { lat, lng } = await geocodeAddress(
     `${address}, ${city || ""}, ${state || ""} ${zip || ""}`
   );
+
+  // Auto-expiry: 14 days from creation by default. Sellers can override by
+  // passing `expiresAt` (ISO string) — used by ingest sources for short-lived feeds.
+  const ttlDays = Number.isFinite(Number(body.ttlDays)) ? Number(body.ttlDays) : 14;
+  const expiresAt = body.expiresAt
+    ? new Date(body.expiresAt)
+    : new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+
+  // If a signed-in user is creating the listing, prefer their id as sellerUserId
+  // so it shows up on /account/sales and benefits from verifiedSeller once approved.
+  const sellerUserId = user?.id ?? null;
 
   const sale = await prisma.sale.create({
     data: {
@@ -187,10 +227,17 @@ export async function POST(request: NextRequest) {
       dates,
       hours,
       description: description || "",
-      seller: seller || "Anonymous",
+      seller: seller || sellerName || user?.name || "Anonymous",
+      sellerUserId,
       verified: false,
-      photos: JSON.stringify(body.photos || []),
+      photos: JSON.stringify(photos || []),
       impactKg: (items?.length || 0) * 1.5,
+      // Provenance + TTL.
+      source: typeof source === "string" ? source.slice(0, 32) : "user",
+      sourceUrl: typeof sourceUrl === "string" ? sourceUrl.slice(0, 1000) : "",
+      expiresAt,
+      // Tie ingest submissions to the ingest bot user (created lazily later).
+      submittedById: sellerUserId,
       items: {
         create:
           items?.map((item: Record<string, unknown>) => ({
@@ -259,5 +306,42 @@ export async function POST(request: NextRequest) {
     console.error("[scout:sales-hook] notification dispatch failed:", err);
   }
 
+  // Seller confirmation email — best-effort, never blocks the response.
+  // We email the seller if we have an email: either the signed-in user's email,
+  // or an explicit `sellerEmail` from the request (used by ingest sources).
+  try {
+    const recipient = sellerEmail || user?.email;
+    if (recipient && isLikelyEmail(recipient)) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const manageUrl = `${appUrl}/manage/${sale.sellerToken}`;
+      const publicUrl = `${appUrl}/sales/${sale.id}`;
+      await sendEmail({
+        to: recipient,
+        subject: `Your GarageRoute listing is live: ${sale.title}`,
+        text: [
+          `Your sale has been published.`,
+          ``,
+          `Title:    ${sale.title}`,
+          `When:     ${sale.dates} (${sale.hours})`,
+          `Where:    ${sale.address}, ${sale.city} ${sale.state} ${sale.zip}`,
+          `Public:   ${publicUrl}`,
+          `Manage:   ${manageUrl}`,
+          ``,
+          `Save the manage link — it's the only way to update your listing,`,
+          `mark items sold, or remove it when the sale is over.`,
+        ].join("\n"),
+        kind: "sale_published",
+        metadata: { saleId: sale.id, manageUrl },
+      });
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[sales:seller-email] send failed:", err);
+  }
+
   return NextResponse.json(normalizeSale(sale), { status: 201 });
+}
+
+function isLikelyEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }

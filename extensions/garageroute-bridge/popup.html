@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GarageRoute Bridge</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        width: 320px;
+        margin: 0;
+        padding: 16px;
+        background: #fafafa;
+        color: #18181b;
+      }
+      h1 { font-size: 16px; margin: 0 0 4px; }
+      p  { font-size: 13px; line-height: 1.4; color: #52525b; margin: 6px 0; }
+      .status {
+        margin: 12px 0;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+      .status.ok    { background: #ecfdf5; color: #065f46; }
+      .status.off   { background: #fef2f2; color: #991b1b; }
+      .status.idle  { background: #f4f4f5; color: #52525b; }
+      a.btn {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: #2563eb;
+        color: white;
+        border-radius: 6px;
+        font-size: 13px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      a.btn:hover { background: #1d4ed8; }
+      .small { font-size: 11px; color: #71717a; }
+    </style>
+  </head>
+  <body>
+    <h1>GarageRoute Bridge</h1>
+    <p>Surface Marketplace listings into your GarageRoute account.</p>
+
+    <div id="status" class="status idle">Checking…</div>
+
+    <a id="connect" class="btn" href="#" target="_blank" style="display:none">
+      Connect GarageRoute
+    </a>
+
+    <p class="small">
+      This extension only runs while you are logged into Facebook and only
+      sends data to <code>garageroute.com</code> — never back to Facebook.
+    </p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

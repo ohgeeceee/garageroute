@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bell, Loader2, CheckCircle } from "lucide-react";
 import { categories } from "@/data/sales";
+import { track } from "@/lib/analytics";
 
 type Props = {
   defaultZip?: string;
@@ -31,6 +32,7 @@ export default function AlertSignup({ defaultZip }: Props = {}) {
       setMessage("You're subscribed! We'll email you when matching sales are posted.");
       setEmail("");
       setZip("");
+      track("alert_subscribed", { category, radius });
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Something went wrong.");

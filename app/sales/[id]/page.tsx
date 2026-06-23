@@ -10,6 +10,8 @@ import {
   QrCode,
   Edit3,
   Leaf,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import { fetchSale } from "@/lib/api";
 import { saleJsonLd } from "@/lib/structured-data";
@@ -21,6 +23,12 @@ import ShareButtons from "@/components/ShareButtons";
 import MessageForm from "@/components/MessageForm";
 import SafeSpots from "@/components/SafeSpots";
 import ReservationForm from "@/components/ReservationForm";
+import ReportSaleButton from "@/components/ReportSaleButton";
+
+type SaleWithStatus = Awaited<ReturnType<typeof fetchSale>> & {
+  status?: string;
+  statusNote?: string;
+};
 
 export default async function SaleDetailPage({
   params,
@@ -28,12 +36,16 @@ export default async function SaleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let sale;
+  let sale: SaleWithStatus;
   try {
-    sale = await fetchSale(id);
+    sale = (await fetchSale(id)) as SaleWithStatus;
   } catch {
     notFound();
   }
+
+  const status = sale.status || "active";
+  const isClosed = status === "cancelled" || status === "ended";
+  const note = sale.statusNote?.trim();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -49,6 +61,31 @@ export default async function SaleDetailPage({
         <ArrowLeft className="h-4 w-4" />
         Back to sales
       </Link>
+
+      {isClosed && (
+        <div
+          role="status"
+          className={`mt-4 flex items-start gap-3 rounded-xl border p-4 ${
+            status === "cancelled"
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-zinc-200 bg-zinc-50 text-zinc-800"
+          }`}
+        >
+          {status === "cancelled" ? (
+            <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+          ) : (
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
+          )}
+          <div>
+            <p className="font-semibold">
+              {status === "cancelled"
+                ? "This sale has been cancelled."
+                : "This sale has ended."}
+            </p>
+            {note && <p className="mt-1 text-sm opacity-90">{note}</p>}
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr,420px]">
         <div>
@@ -120,8 +157,9 @@ export default async function SaleDetailPage({
             </div>
           )}
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <ShareButtons sale={sale} />
+            <ReportSaleButton saleId={sale.id} />
           </div>
 
           <div className="mt-10">
@@ -136,7 +174,7 @@ export default async function SaleDetailPage({
           </div>
 
           <div className="mt-8">
-            <QueueJoinForm saleId={sale.id} />
+            <QueueJoinForm saleId={sale.id} disabled={isClosed} />
           </div>
 
           <div className="mt-8">
@@ -144,7 +182,11 @@ export default async function SaleDetailPage({
           </div>
 
           <div className="mt-8">
-            <ReservationForm saleId={sale.id} items={sale.items} />
+            <ReservationForm
+              saleId={sale.id}
+              items={sale.items}
+              disabled={isClosed}
+            />
           </div>
 
           <div className="mt-8">

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, ArrowRight, Plus, Trash2, Sparkles } from "lucide-react";
+import { CheckCircle, ArrowRight, Plus, Trash2, Sparkles, Upload, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { saleTypes, categories } from "@/data/sales";
 import { createSale } from "@/lib/api";
+
+type Photo = { key: string; url: string; status: "uploading" | "done" | "error" };
 
 export default function PostPage() {
   const router = useRouter();
@@ -26,6 +29,8 @@ export default function PostPage() {
   const [items, setItems] = useState([
     { name: "", category: "", price: "", condition: "Good" },
   ]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const updateSale = (field: keyof typeof sale, value: string) => {
     setSale((prev) => ({ ...prev, [field]: value }));
@@ -70,13 +75,81 @@ export default function PostPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const newSale = await createSale({ ...sale, items });
+      // Wait for any in-flight uploads to finish before submitting.
+      const stillUploading = photos.some((p) => p.status === "uploading");
+      if (stillUploading) {
+        toast.error("Wait for photos to finish uploading.");
+        setSubmitting(false);
+        return;
+      }
+      const photoKeys = photos
+        .filter((p) => p.status === "done")
+        .map((p) => p.key);
+
+      const newSale = await createSale({ ...sale, items, photos: photoKeys });
       setSubmitted(true);
       router.push(`/sales/${newSale.id}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create sale");
+      toast.error(err instanceof Error ? err.message : "Failed to create sale");
       setSubmitting(false);
     }
+  };
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+
+    const MAX_PHOTOS = 8;
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      toast.error(`Max ${MAX_PHOTOS} photos per listing.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    const accepted = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast(`Only added the first ${remaining} photos (max ${MAX_PHOTOS}).`);
+    }
+
+    // Reserve slots so the UI shows them as uploading immediately.
+    const placeholders: Photo[] = accepted.map(() => ({
+      key: "",
+      url: "",
+      status: "uploading",
+    }));
+    setPhotos((prev) => [...prev, ...placeholders]);
+
+    // Upload in parallel — failures flip just that slot to error.
+    await Promise.all(
+      accepted.map(async (file, i) => {
+        const idx = photos.length + i; // index in the array we just appended
+        try {
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch("/api/uploads/photo", { method: "POST", body: fd });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: "Upload failed" }));
+            throw new Error(err.error || "Upload failed");
+          }
+          const data = (await res.json()) as { key: string; url: string };
+          setPhotos((prev) =>
+            prev.map((p, n) => (n === idx ? { key: data.key, url: data.url, status: "done" } : p))
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Upload failed";
+          setPhotos((prev) =>
+            prev.map((p, n) => (n === idx ? { key: "", url: "", status: "error" } : p))
+          );
+          toast.error(`${file.name}: ${msg}`);
+        }
+      })
+    );
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removePhoto = (idx: number) => {
+    setPhotos((prev) => prev.filter((_, n) => n !== idx));
   };
 
   if (submitted) {
@@ -228,6 +301,70 @@ export default function PostPage() {
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
               />
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-zinc-900">Photos</h2>
+            <span className="text-sm text-zinc-500">
+              Up to 8 photos. Buyers want to see what's there.
+            </span>
+          </div>
+
+          <div className="mt-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              multiple
+              onChange={handlePhotoSelect}
+              className="hidden"
+              id="photo-input"
+            />
+            <label
+              htmlFor="photo-input"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-sm font-medium text-zinc-600 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <Upload className="h-5 w-5" />
+              Click to upload photos
+            </label>
+
+            {photos.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {photos.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="group relative aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100"
+                  >
+                    {p.status === "done" && p.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.url}
+                        alt={`Photo ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : p.status === "uploading" ? (
+                      <div className="flex h-full w-full items-center justify-center text-zinc-400">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-red-50 text-xs text-red-600">
+                        Failed
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(idx)}
+                      className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-zinc-700 shadow-sm opacity-0 transition group-hover:opacity-100"
+                      aria-label="Remove photo"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

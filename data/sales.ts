@@ -36,6 +36,10 @@ export type Sale = {
   distanceMi?: number | null;
   /** Whether the seller account has verifiedSeller=true. */
   sellerVerifiedSeller?: boolean;
+  /** "active" | "ended" | "cancelled". Defaults to "active" if unset. */
+  status?: string;
+  /** Optional note shown to buyers when the sale is cancelled/ended. */
+  statusNote?: string;
 };
 
 export const saleTypes = [

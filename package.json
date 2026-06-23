@@ -13,7 +13,10 @@
     "postinstall": "prisma generate",
     "mobile:sync": "npx cap sync",
     "mobile:ios": "npx cap open ios",
-    "mobile:android": "npx cap open android"
+    "mobile:ios:run": "npx cap run ios",
+    "mobile:android": "bash scripts/mobile-android.sh",
+    "mobile:android:emu": "bash scripts/mobile-android-emu.sh",
+    "mobile:android:studio": "npx cap open android"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -32,6 +35,7 @@
     "ai": "^6.0.208",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "gray-matter": "^4.0.3",
     "leaflet": "^1.9.4",
     "lru-cache": "^11.5.1",
     "lucide-react": "^1.21.0",
@@ -41,6 +45,9 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-html": "^16.0.1",
     "resend": "^6.14.0",
     "server-only": "^0.0.1",
     "sharp": "^0.35.1",

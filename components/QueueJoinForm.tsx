@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle, Clock, XCircle } from "lucide-react";
 
-export default function QueueJoinForm({ saleId }: { saleId: string }) {
+export default function QueueJoinForm({
+  saleId,
+  disabled,
+}: {
+  saleId: string;
+  disabled?: boolean;
+}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [partySize, setPartySize] = useState("1");
@@ -41,12 +47,21 @@ export default function QueueJoinForm({ saleId }: { saleId: string }) {
         Join the line before you arrive. Sellers let shoppers in by order.
       </p>
 
+      {disabled && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg bg-zinc-50 p-4 text-zinc-600">
+          <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400" />
+          <p className="text-sm">
+            The queue is closed because this sale is no longer active.
+          </p>
+        </div>
+      )}
+
       {status === "success" ? (
         <div className="mt-4 flex items-start gap-2 rounded-lg bg-emerald-50 p-4 text-emerald-800">
           <CheckCircle className="h-5 w-5 shrink-0" />
           <p>{message}</p>
         </div>
-      ) : (
+      ) : disabled ? null : (
         <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-[1fr,1fr,100px,auto]">
           <input
             required

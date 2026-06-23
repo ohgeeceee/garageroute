@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2, UserPlus, Mail, Lock, User as UserIcon } from "lucide-react";
+import { track } from "@/lib/analytics";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
+    track("signup_started");
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
@@ -25,9 +27,11 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Sign-up failed.");
+      track("signup_complete");
       router.replace("/account");
       router.refresh();
     } catch (err) {
+      track("signup_failed");
       setError((err as Error).message);
       setBusy(false);
     }

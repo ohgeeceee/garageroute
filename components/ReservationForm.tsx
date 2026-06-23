@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Loader2, CheckCircle, Tag } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle, Tag, XCircle } from "lucide-react";
 import { Item } from "@/data/sales";
 
 export default function ReservationForm({
   saleId,
   items,
+  disabled,
 }: {
   saleId: string;
   items: Item[];
+  disabled?: boolean;
 }) {
   const [itemId, setItemId] = useState(items[0]?.id || "");
   const [buyerName, setBuyerName] = useState("");
@@ -59,7 +61,16 @@ export default function ReservationForm({
         Put down a small deposit so the seller holds an item for you.
       </p>
 
-      <form onSubmit={submit} className="mt-4 space-y-3">
+      {disabled && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg bg-zinc-50 p-4 text-zinc-600">
+          <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400" />
+          <p className="text-sm">
+            New reservations are closed because this sale is no longer active.
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={submit} className={`mt-4 space-y-3 ${disabled ? "hidden" : ""}`}>
         <div>
           <label className="block text-sm font-medium text-zinc-700">Item</label>
           <select
