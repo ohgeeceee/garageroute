@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import Script from "next/script";
 import {
   MapPin,
@@ -14,7 +16,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { fetchSale } from "@/lib/api";
-import { saleJsonLd } from "@/lib/structured-data";
+import {
+  saleJsonLd,
+  breadcrumbJsonLd,
+} from "@/lib/structured-data";
 import ItemCard from "@/components/ItemCard";
 import AddToRouteButton from "@/components/AddToRouteButton";
 import DynamicMap from "@/components/DynamicMap";
@@ -29,6 +34,40 @@ type SaleWithStatus = Awaited<ReturnType<typeof fetchSale>> & {
   status?: string;
   statusNote?: string;
 };
+
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const sale = await fetchSale(id).catch(() => null);
+  if (!sale) return { robots: { index: false, follow: true } };
+
+  const title = `${sale.title} — Garage Sale in ${sale.city}, ${sale.state}`;
+  const description = `${sale.type} on ${sale.dates}. ${sale.items.length} items listed at ${sale.address}, ${sale.city}.`;
+  const canonical = `https://garageroute.com/sales/${sale.id}`;
+  const ogImage = sale.photos?.[0] ?? undefined;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      url: canonical,
+      siteName: "GarageRoute",
+      ...(ogImage ? { images: [{ url: ogImage, alt: sale.title }] } : {}),
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function SaleDetailPage({
   params,
@@ -53,6 +92,23 @@ export default async function SaleDetailPage({
         id={`sale-jsonld-${sale.id}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(saleJsonLd(sale)) }}
+      />
+      <Script
+        id={`sale-breadcrumb-${sale.id}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            breadcrumbJsonLd([
+              { name: "Home", url: "https://garageroute.com" },
+              { name: "Browse sales", url: "https://garageroute.com/sales" },
+              {
+                name: `${sale.city}, ${sale.state}`,
+                url: `https://garageroute.com/sales?city=${encodeURIComponent(sale.city)}&state=${encodeURIComponent(sale.state)}`,
+              },
+              { name: sale.title, url: `https://garageroute.com/sales/${sale.id}` },
+            ])
+          ),
+        }}
       />
       <Link
         href="/sales"
@@ -200,12 +256,18 @@ export default async function SaleDetailPage({
           </div>
           <div className="grid grid-cols-2 gap-3">
             {sale.photos.map((photo, idx) => (
-              <img
+              <div
                 key={idx}
-                src={photo}
-                alt={`${sale.title} photo ${idx + 1}`}
-                className="h-32 w-full rounded-lg object-cover"
-              />
+                className="relative h-32 w-full overflow-hidden rounded-lg bg-surface-100"
+              >
+                <Image
+                  src={photo}
+                  alt={`${sale.title} photo ${idx + 1}`}
+                  fill
+                  sizes="(max-width: 1024px) 50vw, 210px"
+                  className="object-cover"
+                />
+              </div>
             ))}
           </div>
         </div>

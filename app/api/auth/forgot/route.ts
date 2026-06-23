@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issuePasswordReset, isValidEmail, normalizeEmail, auditUser } from "@/lib/auth-user";
 import { sendEmail, emailEnabled } from "@/lib/email";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * Issues a password-reset token.
@@ -9,6 +10,15 @@ import { sendEmail, emailEnabled } from "@/lib/email";
  * Otherwise, logs the reset URL to the server console so an admin can paste it.
  */
 export async function POST(req: NextRequest) {
+  // Rate limit per IP: 3 reset requests / 10 minutes. A forgot-password
+  // page should not be a scriptable entry point.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const rl = rateLimit(`forgot:${ip}`, { limit: 3, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    // Don't leak — return the same response shape.
+    return NextResponse.json({ ok: true });
+  }
+
   let body: { email?: string };
   try {
     body = await req.json();
@@ -34,7 +44,7 @@ export async function POST(req: NextRequest) {
     const result = await sendEmail({ to: email, subject, text });
 
     if (!result.ok) {
-      // eslint-disable-next-line no-console
+       
       console.log(`[password-reset] ${email} → ${url} (email send failed: ${result.error})`);
     }
 

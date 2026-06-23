@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 /**
  * Build the list of hostnames Next/Image is allowed to fetch and optimize.
@@ -54,12 +55,41 @@ function buildRemoteImagePatterns(): Array<{ protocol: "https" | "http"; hostnam
 const nextConfig: NextConfig = {
   // Web build remains a normal Next.js Node server.
   // The mobile app is a Capacitor webview pointing at the live URL (see capacitor.config.ts).
-  // Skipping TS type-check at build time — many small type errors in legacy
-  // (pre-existing) files like prisma/seed.ts and app/account/sales/new are
-  // accepted in this prototype. The app itself runs fine. Revisit before launch.
-  typescript: { ignoreBuildErrors: true },
+  //
+  // Type-check at build time is ENABLED in production — we want type errors to
+  // fail the build, not get swept under the rug. (Was `ignoreBuildErrors: true`
+  // in the prototype; removed during the production-readiness pass.)
+  typescript: { ignoreBuildErrors: false },
   images: {
     remotePatterns: buildRemoteImagePatterns(),
+  },
+  // Tell Turbopack the project root so it doesn't try to use the parent
+  // ~/package-lock.json as the workspace root (silences the multi-lockfile
+  // warning on every build).
+  turbopack: {
+    root: path.join(__dirname),
+  },
+  // Static export — opt in with `NEXT_OUTPUT_EXPORT=1` (see npm run build:static).
+  // Used by the Capacitor mobile build (`mobile:sync` consumes ./out).
+  // Don't enable for the server deploy — Vercel serves the Node.js build
+  // and uses ISR for the city/state pages.
+  ...(process.env.NEXT_OUTPUT_EXPORT === "1"
+    ? { output: "export" as const, images: { unoptimized: true } }
+    : {}),
+  // Sensible default security headers. Mirrored by vercel.json so they
+  // apply on every deploy target (Vercel, self-hosted, etc.).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+        ],
+      },
+    ];
   },
 };
 

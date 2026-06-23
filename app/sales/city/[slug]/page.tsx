@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { parseCitySlug, buildCitySlug } from "@/lib/city-slug";
 import { saleListJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
 import SaleCard from "@/components/SaleCard";
+import type { Sale } from "@/data/sales";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -93,9 +94,12 @@ export default async function CitySalesPage({ params }: Props) {
   // driver for this project). Filter city case-insensitively in JS — fine
   // at our current scale; switch to a normalized city column when city
   // counts per state exceed ~500.
+  // Cast: the SQLite column is `type: string`, but the front-end `Sale`
+  // type narrows it to a literal union. The API writes one of those
+  // literals at create time, so the cast is safe here.
   const sales = allStateSales.filter(
     (s) => s.city.toLowerCase() === city.toLowerCase()
-  );
+  ) as unknown as Sale[];
 
   if (sales.length === 0) notFound();
 

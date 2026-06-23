@@ -133,7 +133,7 @@ export async function streamScout(
           tools,
           stopWhen: ({ steps }) => steps.length >= 6,
           onError: ({ error }) => {
-            // eslint-disable-next-line no-console
+             
             console.error("[scout:stream] error:", error);
             controller.enqueue(encoder.encode(sse("error", { message: String(error) })));
           },
@@ -176,7 +176,7 @@ export async function streamScout(
         controller.close();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        // eslint-disable-next-line no-console
+         
         console.error("[scout:stream] caught:", msg);
         controller.enqueue(encoder.encode(sse("error", { message: msg })));
         controller.enqueue(encoder.encode(sse("done", { mode, degraded: true })));

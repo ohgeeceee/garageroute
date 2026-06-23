@@ -184,7 +184,7 @@ export async function sendEmail(args: SendMailArgs): Promise<SendMailResult> {
         error: "RESEND_API_KEY not configured",
       },
     });
-    // eslint-disable-next-line no-console
+     
     console.warn("[email] RESEND_API_KEY missing — not sending", { to: toList, subject });
     return { ok: false, error: "RESEND_API_KEY not configured", skipped: true };
   }

@@ -54,7 +54,7 @@ export default async function AdminConversationsPage() {
             {conversations.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
-                  No conversations yet. Once users start chatting with Scout, they'll show up here.
+                  No conversations yet. Once users start chatting with Scout, they&apos;ll show up here.
                 </td>
               </tr>
             )}

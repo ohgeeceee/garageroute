@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSession, isValidEmail, normalizeEmail, verifyPassword, auditUser } from "@/lib/auth-user";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Rate limit per IP: 10 attempts / 10 minutes. Stops brute-force
+  // password guessing while staying loose enough for typos + retries.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const rl = rateLimit(`login:${ip}`, { limit: 10, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   let body: { email?: string; password?: string };
   try {
     body = await req.json();

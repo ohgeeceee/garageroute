@@ -191,3 +191,25 @@ Create a `.env` file in the project root. Do not commit it. Required/used variab
 - `RouteContext` holds the itinerary only in memory; it is not persisted.
 - `/route` fetches driving directions from the public OSRM demo server and displays road-following polylines, total driving distance, and estimated duration.
 - Default geographic fallback is Indianapolis, IN.
+
+
+## State network (Phase 11)
+
+### Subdomain routing
+- `status=live` states → `https://{slug}.garageroute.com` (browsed via cross-domain `<a>`, NOT Next/Link)
+- `status=preview|seeding` states → `/states/{slug}` (coming-soon page on main domain)
+- `StatePicker` client component: `<select>` with `optgroup` for live + coming-soon; uses `slug|status` split-encoding to route correctly
+
+### State model + Alert reuse
+- `prisma.state`: slug, name, abbreviation, lat/lng, bbox, status, launchDate, tagline, heroImage, targetCities (JSON), sortOrder
+- `prisma.alert` is reused for state-launch alerts via `category = "state-launch:{slug}"` — do NOT create a separate table
+- `saleCount`/`sellerCount` on `StateCard` are placeholders; the integration task should replace with real Prisma aggregations
+
+### Components added (2026-06-20)
+- `components/StateCard.tsx` — server component, status badge, cross-domain CTA
+- `components/StateHero.tsx` — server component, dark gradient hero, large abbr in bg
+- `components/StatePicker.tsx` — client component, optgroup dropdown
+- `components/StateSignupForm.tsx` — client component, email-only POST to `/api/state-alerts`
+- `app/states/page.tsx` — server component, live grid + coming-soon list
+- `app/states/[slug]/page.tsx` — server component, coming-soon copy, launch month estimate
+- `app/api/state-alerts/route.ts` — POST stub, validates email, creates Alert row

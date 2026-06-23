@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Package,
   MessageSquare,
@@ -212,9 +213,12 @@ export default async function AccountDashboardPage() {
                     href={`/sales/${f.sale.id}`}
                     className="flex items-center gap-4 px-5 py-3 transition hover:bg-surface-50"
                   >
-                    <img
+                    <Image
                       src={photo}
                       alt=""
+                      width={56}
+                      height={56}
+                      unoptimized
                       className="h-14 w-14 shrink-0 rounded-lg object-cover"
                     />
                     <div className="min-w-0 flex-1">

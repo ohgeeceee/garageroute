@@ -1,13 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
+import { headers } from "next/headers";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import ScoutWidget from "@/components/ScoutWidget";
-import MobileTabBar from "@/components/MobileTabBar";
 import { getCurrentUser } from "@/lib/auth-user";
-import { prisma } from "@/lib/prisma";
+import { getStateBySlug } from "@/lib/state";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,7 +15,7 @@ const inter = Inter({
 });
 
 const jetbrains = JetBrains_Mono({
-  variable: "--font-mono-jet",
+  variable: "--font-mono-jetbrains",
   subsets: ["latin"],
   display: "swap",
 });
@@ -32,84 +31,62 @@ function appBaseUrl(): string {
   return fromEnv || DEFAULT_APP_URL;
 }
 
-const PLAUSIBLE_DOMAIN = "garageroute.com";
-
 /**
- * Build the alternates map for hreflang.
- *
- * On the bare domain we declare every live state as a language variant
- * (`en-US-mt`, `en-US-co`, ...) and the bare domain as the x-default.
- *
- * On a state subdomain (resolved via the `x-state-slug` header set by
- * proxy.ts) we declare that subdomain as the canonical English variant
- * for its state and the bare domain as x-default.
- *
- * Google uses hreflang to consolidate duplicate content across regional
- * subdomains and serve the right variant per user locale.
+ * Extract state subdomain slug from the Host header.
+ * Returns null for localhost, bare domain, or unrecognised subdomains.
  */
-async function buildAlternates(stateSlug: string | null) {
-  const liveStates = await prisma.state.findMany({
-    where: { status: "live" },
-    select: { slug: true, abbreviation: true },
-  });
-
-  // state_slug → USPS code (e.g. "montana" → "MT")
-  const slugToAbbr = new Map(liveStates.map((s) => [s.slug, s.abbreviation]));
-
-  if (stateSlug) {
-    // State-subdomain branch: self is canonical, others are alternates.
-    const languages: Record<string, string> = { "x-default": "https://garageroute.com" };
-    for (const s of liveStates) {
-      languages[`en-US-${s.abbreviation.toLowerCase()}`] =
-        s.slug === stateSlug
-          ? `https://${s.slug}.garageroute.com`
-          : `https://${s.slug}.garageroute.com`;
-    }
-    return {
-      canonical: `https://${stateSlug}.garageroute.com`,
-      languages,
-    };
+function extractStateFromHost(host: string): string | null {
+  if (!host) return null;
+  const clean = host.split(":")[0]; // strip port
+  // Root / www domain
+  if (
+    clean === "garageroute.com" ||
+    clean === "www.garageroute.com" ||
+    clean === "localhost"
+  ) {
+    return null;
   }
-
-  // Bare-domain branch: x-default + each state as its own variant.
-  const languages: Record<string, string> = { "x-default": "https://garageroute.com" };
-  for (const s of liveStates) {
-    languages[`en-US-${s.abbreviation.toLowerCase()}`] = `https://${s.slug}.garageroute.com`;
+  // *.garageroute.com subdomains
+  if (clean.endsWith(".garageroute.com")) {
+    const slug = clean.split(".")[0];
+    return slug || null;
   }
-  return {
-    canonical: "https://garageroute.com",
-    languages,
-  };
+  return null;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { headers } = await import("next/headers");
   const reqHeaders = await headers();
-  const stateSlug = reqHeaders.get("x-state-slug") ?? null;
+  // Try middleware-set headers first (available in deployed environments where
+  // middleware runs before metadata resolution).
+  const stateSlug =
+    reqHeaders.get("x-state-slug") ??
+    extractStateFromHost(reqHeaders.get("host") ?? "");
 
-  const alternates = await buildAlternates(stateSlug);
-  const stateName = reqHeaders.get("x-state-name");
-
-  if (stateSlug && stateName) {
+  if (stateSlug) {
+    // Look up the state's display name from the DB.
+    const state = await getStateBySlug(stateSlug);
+    const stateName = state?.name ?? stateSlug;
+    const description = `Browse garage sales, estate sales, and yard sales in ${stateName}. Post your own sale in minutes.`;
+    const stateBase = `https://${stateSlug}.garageroute.com`;
     return {
       metadataBase: new URL(appBaseUrl()),
-      title: {
-        default: `${stateName} GarageRoute — Find garage sales. Plan the route.`,
-        template: "%s — GarageRoute",
+      title: `${stateName} GarageRoute — Find garage sales. Plan the route.`,
+      description,
+      alternates: {
+        canonical: stateBase,
+        types: { "text/html": stateBase },
       },
-      description: `Browse garage sales, estate sales, and yard sales in ${stateName}. Post your own sale in minutes.`,
-      alternates,
       openGraph: {
         title: `${stateName} GarageRoute — Find garage sales. Plan the route.`,
-        description: `Browse garage sales, estate sales, and yard sales in ${stateName}. Post your own sale in minutes.`,
+        description,
         type: "website",
         siteName: "GarageRoute",
-        url: `https://${stateSlug}.garageroute.com`,
+        url: stateBase,
       },
       twitter: {
         card: "summary_large_image",
         title: `${stateName} GarageRoute`,
-        description: `Browse garage sales, estate sales, and yard sales in ${stateName}. Post your own sale in minutes.`,
+        description,
       },
       robots: {
         index: true,
@@ -121,9 +98,16 @@ export async function generateMetadata(): Promise<Metadata> {
           "max-snippet": -1,
         },
       },
+      manifest: "/manifest.json",
+      appleWebApp: {
+        capable: true,
+        title: "GarageRoute",
+        statusBarStyle: "default",
+      },
     };
   }
 
+  // Bare domain / localhost — static defaults
   return {
     metadataBase: new URL(appBaseUrl()),
     title: {
@@ -132,18 +116,22 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description:
       "Discover local garage and estate sales, preview items, and build optimized weekend routes.",
-    alternates,
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      title: "GarageRoute",
+      statusBarStyle: "default",
+    },
     openGraph: {
       title: "GarageRoute — Find sales. Plan the route.",
       description:
         "Preview items inside local garage sales and build an optimized Saturday route.",
       type: "website",
       siteName: "GarageRoute",
-      url: "https://garageroute.com",
     },
     twitter: {
       card: "summary_large_image",
-      title: "GarageRoute — Find garage sales. Plan the route.",
+      title: "GarageRoute",
       description:
         "Preview items inside local garage sales and build an optimized Saturday route.",
     },
@@ -157,12 +145,6 @@ export async function generateMetadata(): Promise<Metadata> {
         "max-snippet": -1,
       },
     },
-    manifest: "/manifest.json",
-    appleWebApp: {
-      capable: true,
-      title: "GarageRoute",
-      statusBarStyle: "default",
-    },
   };
 }
 
@@ -171,10 +153,6 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
     { media: "(prefers-color-scheme: dark)", color: "#0F172A" },
   ],
-  // Extend the layout under the iPhone notch / Dynamic Island so the
-  // MobileTabBar's safe-area-inset-bottom actually has a non-zero value
-  // on real devices. Harmless on Android.
-  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -197,18 +175,10 @@ export default async function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-surface-50 text-surface-900 pb-16 md:pb-0">
+      <body className="min-h-full flex flex-col bg-surface-50 text-surface-900">
         <Providers user={sessionUser}>{children}</Providers>
-        <MobileTabBar />
         <ScoutWidget />
         <ServiceWorkerRegistration />
-        {/* Plausible Analytics — privacy-friendly, no cookie banner required */}
-        <Script
-          defer
-          data-domain={PLAUSIBLE_DOMAIN}
-          src="https://plausible.io/js/script.js"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );

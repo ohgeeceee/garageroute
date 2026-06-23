@@ -3,8 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { createSession, hashPassword, isValidEmail, normalizeEmail, auditUser } from "@/lib/auth-user";
 import { sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/emails/welcome";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // Rate limit per IP: 5 signups / 10 minutes. Stops script-kiddie
+  // account-creation spam while staying loose enough for real users
+  // on shared Wi-Fi.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const rl = rateLimit(`signup:${ip}`, { limit: 5, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many signup attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   let body: { email?: string; password?: string; name?: string };
   try {
     body = await req.json();
@@ -54,11 +67,11 @@ export async function POST(req: NextRequest) {
       kind: "welcome",
       metadata: { userId: user.id },
     }).catch((err) => {
-      // eslint-disable-next-line no-console
+       
       console.error("[signup] welcome email failed:", err);
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error("[signup] welcome email render failed:", err);
   }
 

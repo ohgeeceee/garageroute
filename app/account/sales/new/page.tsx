@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, PlusCircle, AlertTriangle, ShieldCheck } from "lucide-react";
 import { PhotoUploader, type PhotoEntry } from "@/components/PhotoUploader";
@@ -172,7 +173,7 @@ export default function NewSalePage() {
         )}
 
         <div className="flex items-center justify-end gap-2">
-          <a href="/account/sales" className="btn btn-secondary">Cancel</a>
+          <Link href="/account/sales" className="btn btn-secondary">Cancel</Link>
           <button type="submit" disabled={busy || stillUploading} className="btn btn-primary">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
             Create sale

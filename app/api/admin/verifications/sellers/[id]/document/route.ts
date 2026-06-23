@@ -43,7 +43,7 @@ export async function GET(
       const url = await storage.getReadUrl(row.documentPath, 300);
       return NextResponse.redirect(url, { status: 302 });
     } catch (e) {
-      // eslint-disable-next-line no-console
+       
       console.error("[verifications/document] presign failed", e);
       return NextResponse.json({ error: "Failed to generate access URL" }, { status: 500 });
     }

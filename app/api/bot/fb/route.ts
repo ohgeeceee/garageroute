@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   // Always 200 fast — Meta retries on 5xx and that floods our logs.
   if (!messengerEnabled()) {
     // Still ack so Meta doesn't retry; log loudly.
-    // eslint-disable-next-line no-console
+     
     console.warn("[scout:fb] webhook called but FB creds missing — message dropped");
     return NextResponse.json({ ok: false, reason: "fb_disabled" });
   }
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   // Process in background — but wait briefly so we can return cleanly.
   void processEvents(body).catch((err) => {
-    // eslint-disable-next-line no-console
+     
     console.error("[scout:fb] processEvents error:", err);
   });
 
@@ -129,7 +129,7 @@ async function sendFbText(psid: string, text: string): Promise<void> {
         message: { text: chunk },
       }),
     }).catch((err) => {
-      // eslint-disable-next-line no-console
+       
       console.error("[scout:fb] sendFbText failed:", err);
     });
   }

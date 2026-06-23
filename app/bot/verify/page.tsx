@@ -41,7 +41,7 @@ export default async function BotVerifyPage({
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold">You're verified</h1>
+            <h1 className="text-xl font-semibold">You&apos;re verified</h1>
             <p className="mt-2 text-sm text-zinc-600">
               Scout can now help with your account. Head back to the chat and pick up where you left off.
             </p>
@@ -56,7 +56,7 @@ export default async function BotVerifyPage({
           </>
         ) : (
           <>
-            <h1 className="text-xl font-semibold">Couldn't verify</h1>
+            <h1 className="text-xl font-semibold">Couldn&apos;t verify</h1>
             <p className="mt-2 text-sm text-zinc-600">
               {errorMessage || "Something went wrong. Try requesting a new link from Scout."}
             </p>

@@ -38,14 +38,14 @@ export async function POST(req: NextRequest) {
       payload = verified as ResendInboundPayload;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "invalid signature";
-      // eslint-disable-next-line no-console
+       
       console.error("[email-inbound] signature verification failed:", msg);
       return NextResponse.json({ error: "invalid signature" }, { status: 401 });
     }
   } else {
     // Dev mode — accept unsigned. Log so it's obvious in production.
     if (process.env.NODE_ENV === "production") {
-      // eslint-disable-next-line no-console
+       
       console.warn(
         "[email-inbound] RESEND_WEBHOOK_SECRET not set — accepting unsigned requests in production",
       );
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
   const toName = to.name || "";
 
   if (!fromAddress) {
-    // eslint-disable-next-line no-console
+     
     console.error("[email-inbound] missing from address", { payload });
     return NextResponse.json({ ok: false, error: "missing from" }, { status: 400 });
   }

@@ -67,7 +67,7 @@ export async function logAudit(payload: AuditPayload): Promise<void> {
       },
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error("[audit] failed to write log entry:", err);
   }
 }

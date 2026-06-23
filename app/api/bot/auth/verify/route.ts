@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   // Find or create the user (this handles the rare case where someone
   // tries to verify an email that doesn't have an account).
-  let user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     // Don't auto-create accounts here — just fail with a friendly message.
     return NextResponse.redirect(new URL("/bot/verify?error=no_account", req.url));

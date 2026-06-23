@@ -109,7 +109,7 @@ export async function postSaleToFacebookPage(sale: FbPostableSale): Promise<FbPo
 
     if (!res.ok || data.error || !data.id) {
       const errMsg = data.error?.message || `HTTP ${res.status}`;
-      // eslint-disable-next-line no-console
+       
       console.error("[scout:fb-post] failed:", errMsg, { saleId: sale.id });
       await logAudit({
         actor: "system",
@@ -123,7 +123,7 @@ export async function postSaleToFacebookPage(sale: FbPostableSale): Promise<FbPo
 
     const postId = data.id;
     const postUrl = `https://facebook.com/${postId}`;
-    // eslint-disable-next-line no-console
+     
     console.log(`[scout:fb-post] posted sale ${sale.id} → ${postUrl}`);
     await logAudit({
       actor: "system",
@@ -136,7 +136,7 @@ export async function postSaleToFacebookPage(sale: FbPostableSale): Promise<FbPo
     return { ok: true, postId, url: postUrl };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // eslint-disable-next-line no-console
+     
     console.error("[scout:fb-post] exception:", msg, { saleId: sale.id });
     return { ok: false, reason: "exception", error: msg };
   }

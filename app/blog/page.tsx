@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { Calendar, Clock, ArrowRight, BookOpen } from "lucide-react";
@@ -95,12 +96,12 @@ export default function BlogIndexPage() {
                   >
                     {post.coverImage && (
                       <div className="relative aspect-[1200/630] w-full overflow-hidden bg-surface-100">
-                        {/* Using next/image with remote patterns already configured for picsum */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                           src={post.coverImage}
                           alt={post.title}
-                          className="h-full w-full object-cover transition group-hover:scale-105"
+                          fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover transition group-hover:scale-105"
                         />
                       </div>
                     )}

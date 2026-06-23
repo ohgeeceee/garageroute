@@ -64,7 +64,7 @@ export async function runIngestForSource(
     options: safeJsonParse(source.config, {}),
   };
 
-  let summary: RunSummary = {
+  const summary: RunSummary = {
     sourceId,
     kind: source.kind,
     slug: source.slug,

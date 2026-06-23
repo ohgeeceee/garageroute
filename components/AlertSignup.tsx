@@ -7,9 +7,11 @@ import { track } from "@/lib/analytics";
 
 type Props = {
   defaultZip?: string;
+  /** Pre-fill the signup with the current state's name as context. */
+  stateContext?: string;
 };
 
-export default function AlertSignup({ defaultZip }: Props = {}) {
+export default function AlertSignup({ defaultZip, stateContext }: Props = {}) {
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState(defaultZip || "");
   const [category, setCategory] = useState("");
@@ -43,7 +45,9 @@ export default function AlertSignup({ defaultZip }: Props = {}) {
     <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white sm:p-8">
       <div className="flex items-center gap-2">
         <Bell className="h-6 w-6" />
-        <h2 className="text-xl font-bold">Get sale alerts</h2>
+        <h2 className="text-xl font-bold">
+          {stateContext ? `${stateContext} ` : ""}Get sale alerts
+        </h2>
       </div>
       <p className="mt-1 text-blue-100">
         Be the first to know when new sales match your interests and ZIP code.

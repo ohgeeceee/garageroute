@@ -27,12 +27,27 @@ const DEFAULT_RADIUS = 25;
 type Props = {
   loggedIn: boolean;
   initialFavoriteIds: string[];
+  stateName?: string;
+  stateCentroid?: { lat: number; lng: number };
 };
 
-export default function SalesBrowser({ loggedIn, initialFavoriteIds }: Props) {
+export default function SalesBrowser({
+  loggedIn,
+  initialFavoriteIds,
+  stateName,
+  stateCentroid,
+}: Props) {
   // Location (from localStorage on mount).
-  const [location, setLocation] = useState<StoredLocation | null>(null);
-  const [radius, setRadius] = useState<number>(DEFAULT_RADIUS);
+  // If a state centroid is available and the user has no stored location yet,
+  // default to the state centroid with a wider radius.
+  const [location, setLocation] = useState<StoredLocation | null>(
+    stateCentroid
+      ? { lat: stateCentroid.lat, lng: stateCentroid.lng, zip: undefined, capturedAt: new Date().toISOString() }
+      : null
+  );
+  const [radius, setRadius] = useState<number>(
+    stateCentroid ? 50 : DEFAULT_RADIUS
+  );
 
   // Filters.
   const [query, setQuery] = useState("");
@@ -68,6 +83,7 @@ export default function SalesBrowser({ loggedIn, initialFavoriteIds }: Props) {
       if (category) params.set("category", category);
       if (verifiedOnly) params.set("verifiedOnly", "true");
       params.set("when", when);
+      if (stateName) params.set("state", stateName);
       if (location) {
         params.set("lat", String(location.lat));
         params.set("lng", String(location.lng));
@@ -82,7 +98,7 @@ export default function SalesBrowser({ loggedIn, initialFavoriteIds }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [query, type, category, verifiedOnly, when, location, radius]);
+  }, [query, type, category, verifiedOnly, when, location, radius, stateName]);
 
   useEffect(() => {
     // fetchSales() is async; setState happens inside async callbacks, not
@@ -99,7 +115,7 @@ export default function SalesBrowser({ loggedIn, initialFavoriteIds }: Props) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-bold text-zinc-900">
-        Browse garage & yard sales
+        {stateName ? `${stateName} ` : ""}Browse garage & yard sales
       </h1>
       <p className="mt-1 text-zinc-600">
         Find sales in your area — then add favorites and build a route.
@@ -251,13 +267,18 @@ export default function SalesBrowser({ loggedIn, initialFavoriteIds }: Props) {
 
         {!loading && !error && view === "map" && (
           <div className="h-[600px]">
-            <SalesMap sales={sales} className="h-full" />
+            <SalesMap
+              sales={sales}
+              className="h-full"
+              center={stateCentroid ? [stateCentroid.lat, stateCentroid.lng] : undefined}
+              zoom={stateCentroid ? 7 : undefined}
+            />
           </div>
         )}
       </div>
 
       <div className="mt-10">
-        <AlertSignup defaultZip={location?.zip} />
+        <AlertSignup defaultZip={location?.zip} stateContext={stateName} />
       </div>
     </div>
   );

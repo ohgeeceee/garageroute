@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import { mockSales, categories } from "@/data/sales";
 import Link from "next/link";
@@ -87,10 +88,13 @@ export function HeroSearch() {
               className="group flex items-center justify-between rounded-xl bg-white/5 p-3 transition hover:bg-white/10 cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <img
+                <Image
                   src={item.photo || "https://picsum.photos/200"}
                   alt=""
                   aria-hidden="true"
+                  width={40}
+                  height={40}
+                  unoptimized
                   className="h-10 w-10 shrink-0 rounded-lg object-cover bg-white/5"
                 />
                 <div className="min-w-0">

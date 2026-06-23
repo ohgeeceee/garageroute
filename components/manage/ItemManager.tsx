@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   Plus,
   Pencil,
@@ -236,9 +237,12 @@ export default function ItemManager({
             >
               <div className="flex items-center gap-3">
                 {item.photo ? (
-                  <img
+                  <Image
                     src={item.photo}
                     alt={item.name}
+                    width={48}
+                    height={48}
+                    unoptimized
                     className="h-12 w-12 rounded-lg object-cover"
                   />
                 ) : (

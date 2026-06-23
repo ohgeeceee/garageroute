@@ -602,14 +602,14 @@ function ActionsView({
   // Reset active row + focus when sale changes
   useEffect(() => {
     setActive(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [sale.id]);
 
   // Focus the active row whenever active or rows length change
   useEffect(() => {
     if (active >= rows.length) setActive(rows.length - 1);
     rowsRef.current[active]?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [active, rows.length]);
 
   const onKey = (e: React.KeyboardEvent) => {

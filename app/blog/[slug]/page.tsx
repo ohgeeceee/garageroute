@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { notFound } from "next/navigation";
@@ -134,12 +135,13 @@ export default async function BlogPostPage({ params }: Props) {
 
         {post.coverImage && (
           <div className="mx-auto -mb-1 max-w-5xl px-4 sm:px-6 lg:px-8">
-            <div className="aspect-[1200/630] w-full overflow-hidden rounded-t-2xl bg-surface-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <div className="relative aspect-[1200/630] w-full overflow-hidden rounded-t-2xl bg-surface-100">
+              <Image
                 src={post.coverImage}
                 alt={post.title}
-                className="h-full w-full object-cover"
+                fill
+                sizes="(min-width: 1024px) 1024px, 100vw"
+                className="object-cover"
               />
             </div>
           </div>

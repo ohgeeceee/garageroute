@@ -71,7 +71,9 @@ export function trackPageview(url?: string): void {
   if (typeof window === "undefined") return;
   try {
     if (typeof window.plausible === "function") {
-      window.plausible("pageview", url ? { u: url } : undefined);
+      // Plausible's pageview override accepts a `u` prop; pass it under
+      // `props` so the typed `plausible` global above is satisfied.
+      window.plausible("pageview", url ? { props: { u: url } } : undefined);
     }
   } catch {
     // ignore

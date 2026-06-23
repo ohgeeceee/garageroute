@@ -136,7 +136,7 @@ export async function runScout(args: RunArgs): Promise<RunResult> {
     return { ok: true, reply, toolCalls, mode, degraded: false };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // eslint-disable-next-line no-console
+     
     console.error("[scout] run failed:", msg);
     return { ok: false, reply: DEGRADED_REPLY, toolCalls: [], mode, degraded: true };
   }

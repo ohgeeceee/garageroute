@@ -29,7 +29,7 @@ export async function scanBuffer(buf: Buffer, mimeType: string, originalName?: s
   if (!clam) {
     // No scanner available — soft pass with a console warning.
     if (process.env.NODE_ENV !== "test") {
-      // eslint-disable-next-line no-console
+       
       console.warn(
         "[security] No clamav binary found. Uploads are NOT being scanned. " +
         "Install clamav (`apt install clamav`) and ensure `clamscan` is on PATH before production."
@@ -52,11 +52,11 @@ export async function scanBuffer(buf: Buffer, mimeType: string, originalName?: s
       return { clean: false, reason: extractInfection(out.stdout, out.stderr) || "malware detected", scanner: "clamav", scannedMs: ms };
     }
     // 2 = error. Treat as soft-fail (don't block legitimate users) but log loudly.
-    // eslint-disable-next-line no-console
+     
     console.error(`[security] clamav error (exit ${out.code}) for ${mimeType}:`, out.stderr || out.stdout);
     return { clean: true, scanner: "clamav", scannedMs: ms };
   } catch (e) {
-    // eslint-disable-next-line no-console
+     
     console.error("[security] scan threw:", e);
     return { clean: true, scanner: "none", scannedMs: Date.now() - start };
   } finally {

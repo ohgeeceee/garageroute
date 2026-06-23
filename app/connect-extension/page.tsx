@@ -129,7 +129,7 @@ export default function ConnectExtensionPage() {
       <h1 className="text-2xl font-bold text-zinc-900">Connect the browser extension</h1>
       <p className="mt-2 text-zinc-600">
         The GarageRoute Bridge extension reads yard-sale listings from Facebook Marketplace
-        while you're logged in, and surfaces them into your GarageRoute account. Nothing
+        while you&apos;re logged in, and surfaces them into your GarageRoute account. Nothing
         is sent anywhere except garageroute.com.
       </p>
 
@@ -143,9 +143,9 @@ export default function ConnectExtensionPage() {
             Open <code>chrome://extensions</code>, enable Developer mode.
           </li>
           <li>
-            Click "Load unpacked" and select the folder.
+            Click &quot;Load unpacked&quot; and select the folder.
           </li>
-          <li>Click the extension icon → "Manage connection" → paste your token below.</li>
+            <li>Click the extension icon → &quot;Manage connection&quot; → paste your token below.</li>
         </ol>
         <p className="mt-3 text-xs text-zinc-500">
           (When ready, this extension ships through the Chrome Web Store under your developer account.)
@@ -302,7 +302,7 @@ export default function ConnectExtensionPage() {
         <Link href="/docs/extension" className="text-blue-600 hover:underline">
           extension documentation
         </Link>{" "}
-        for what this does and doesn't do.
+        for what this does and doesn&apos;t do.
       </p>
     </div>
   );

@@ -1,23 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
+import { headers } from "next/headers";
 import {
   Search,
   Map as MapIcon,
-  ShieldCheck,
   Clock,
   ArrowRight,
   Leaf,
   Package,
   Zap,
   Star,
-  TrendingUp,
-  Users,
   CheckCircle,
   Bell,
   Recycle,
   Wallet2,
   Sparkles,
   BadgeCheck,
+  Calendar,
 } from "lucide-react";
 import { fetchSales } from "@/lib/api";
 import {
@@ -28,6 +28,36 @@ import SaleCard from "@/components/SaleCard";
 import AlertSignup from "@/components/AlertSignup";
 import { HeroSearch } from "@/components/landing/HeroSearch";
 import { StatCounter } from "@/components/landing/StatCounter";
+import StateHero from "@/components/StateHero";
+import StatePicker from "@/components/StatePicker";
+import StateSignupForm from "@/components/StateSignupForm";
+import { prisma } from "@/lib/prisma";
+
+// Per-page metadata. Without this the layout title template wins, but the
+// render was leaking an admin-internal label into the customer SERP —
+// pinning it here guarantees the public-facing headline wins.
+export const metadata: Metadata = {
+  title: "GarageRoute — Find garage sales. Plan the route.",
+  description:
+    "Discover local garage and estate sales, preview items, and build optimized weekend routes.",
+  alternates: {
+    canonical: "https://garageroute.com",
+  },
+  openGraph: {
+    title: "GarageRoute — Find garage sales. Plan the route.",
+    description:
+      "Preview items inside local garage sales and build an optimized Saturday route.",
+    type: "website",
+    url: "https://garageroute.com",
+    siteName: "GarageRoute",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GarageRoute — Find garage sales. Plan the route.",
+    description:
+      "Preview items inside local garage sales and build an optimized Saturday route.",
+  },
+};
 
 const features = [
   {
@@ -90,6 +120,151 @@ const testimonials = [
 const partnerLogos = ["Northside", "Maple St.", "Lakeshore", "Birchwood", "Heritage", "Foxglove"];
 
 export default async function Home() {
+  const reqHeaders = await headers();
+  const stateSlug = reqHeaders.get("x-state-slug");
+  const stateName = reqHeaders.get("x-state-name");
+
+  // --- State subdomain: live → scoped landing ---
+  if (stateSlug && stateName) {
+    const state = await prisma.state.findUnique({
+      where: { slug: stateSlug.toLowerCase() },
+    });
+
+    if (state) {
+      const isLive = state.status === "live";
+
+      if (isLive) {
+        const targetCities: string[] = JSON.parse(state.targetCities || "[]");
+        const stateSales = await fetchSales().catch(() => []).then((all) =>
+          all.filter((s) => s.state.toLowerCase() === stateName.toLowerCase()).slice(0, 3)
+        );
+        return (
+          <div className="flex flex-col">
+            <StateHero
+              state={{
+                name: state.name,
+                abbreviation: state.abbreviation,
+                tagline: state.tagline || `Find garage sales in ${state.name}`,
+                saleCount: stateSales.length,
+                targetCities,
+              }}
+            />
+            {/* State-scoped "Top sales" grid */}
+            <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-surface-900">
+                  Top sales in {state.name}
+                </h2>
+                <p className="mt-1 text-surface-600">
+                  Weekend garage, estate, and yard sales near you.
+                </p>
+              </div>
+              {stateSales.length > 0 ? (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {stateSales.map((sale) => (
+                    <SaleCard key={sale.id} sale={sale} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-surface-200 bg-white p-8 text-center">
+                  <p className="font-medium text-surface-700">No sales posted yet in {state.name}.</p>
+                  <Link href="/post" className="btn btn-primary mt-4 inline-flex">
+                    Be the first to post
+                  </Link>
+                </div>
+              )}
+              <div className="mt-8 text-center">
+                <Link href="/sales" className="btn btn-secondary">
+                  Browse all {state.name} sales
+                </Link>
+              </div>
+            </section>
+            <section className="bg-surface-50 py-16">
+              <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <AlertSignup stateContext={stateName} />
+              </div>
+            </section>
+          </div>
+        );
+      }
+
+      // Non-live subdomain → coming-soon page content
+      const targetCities: string[] = JSON.parse(state.targetCities || "[]");
+      const estimatedMonth = (() => {
+        if (state.launchDate) {
+          return new Date(state.launchDate).toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+          });
+        }
+        const now = new Date();
+        now.setMonth(now.getMonth() + Math.max(1, state.sortOrder));
+        return now.toLocaleString("en-US", { month: "long", year: "numeric" });
+      })();
+
+      return (
+        <div className="flex flex-col">
+          <StateHero
+            state={{
+              name: state.name,
+              abbreviation: state.abbreviation,
+              tagline: state.tagline || `GarageRoute is coming to ${state.name}`,
+              saleCount: 0,
+              targetCities,
+            }}
+          />
+          <section className="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
+            <div className="card p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="h-5 w-5 text-brand-600" aria-hidden="true" />
+                <span className="text-sm font-medium text-brand-700">
+                  {state.status === "seeding" ? "Seeding" : "Coming soon"}
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold text-surface-900">
+                {state.name} is on the map.
+              </h2>
+              <p className="mt-3 text-surface-600 leading-relaxed">
+                We&apos;re building the garage sale network in{" "}
+                <strong className="font-semibold text-surface-900">{state.name}</strong>. Our
+                team is scouting neighborhoods, partnering with local communities, and
+                preparing to launch — with verified sellers, item search, and route
+                planning from day one.
+              </p>
+              {targetCities.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-surface-700 mb-2">
+                    First target cities:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {targetCities.map((city) => (
+                      <span key={city} className="badge badge-brand">
+                        {city}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-6 flex items-center gap-2 text-sm text-surface-600">
+                <span className="font-medium">Expected launch:</span>
+                <span className="font-semibold text-surface-900">{estimatedMonth}</span>
+              </div>
+              <div className="mt-8 border-t border-surface-200 pt-8">
+                <p className="text-sm text-surface-600 mb-4">
+                  Be the first to know when {state.name} goes live:
+                </p>
+                <div className="max-w-sm">
+                  <StateSignupForm stateSlug={state.slug} stateName={state.name} />
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
+  }
+
+  // --- Bare domain → national landing + StatePicker ---
   let featuredSales: Awaited<ReturnType<typeof fetchSales>> = [];
   let totalImpact = 0;
   let totalItems = 0;
@@ -103,6 +278,11 @@ export default async function Home() {
   } catch {
     featuredSales = [];
   }
+
+  const allStates = await prisma.state.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: { slug: true, name: true, status: true },
+  });
 
   return (
     <div className="flex flex-col">
@@ -196,21 +376,26 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============= TRUST LOGOS ============= */}
+      {/* ============= TRUST LOGOS + STATE PICKER ============= */}
       <section className="bg-surface-0 py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs uppercase tracking-[0.2em] text-surface-500 font-semibold mb-6">
-            Hosting the weekend hunts of neighbors in
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
-            {partnerLogos.map((name) => (
-              <span
-                key={name}
-                className="text-lg font-semibold tracking-tight text-surface-400 select-none"
-              >
-                {name}
-              </span>
-            ))}
+          <div className="mb-6 flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-surface-500 font-semibold">
+                Live now in
+              </p>
+              <StatePicker states={allStates} />
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
+              {partnerLogos.map((name) => (
+                <span
+                  key={name}
+                  className="text-lg font-semibold tracking-tight text-surface-400 select-none"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </section>
