@@ -324,38 +324,53 @@ systemctl list-timers garageroute-watchdog.timer
 
 ### 6.2 Host-level external monitor (do this once)
 
-Two options — pick one. The repo ships both.
+Two options — pick one. Both ship in the repo.
 
-**Option A — GitHub Actions (recommended, zero setup)**
+**Option A — UptimeRobot (recommended, ~90 sec setup)**
 
-A scheduled workflow already lives at
-`.github/workflows/uptime-monitor.yml`. It runs every 5 min, pings
-`/api/health`, and opens (or auto-closes) a GitHub Issue labeled
-`uptime-down` on failure. GitHub auto-emails the repo owner on every
-issue event. Free for public repos (this one is).
-
-- Workflow file: `.github/workflows/uptime-monitor.yml`
-- Failures: GitHub → Issues → label `uptime-down`
-- Manual trigger: GitHub → Actions → `uptime-monitor` → Run workflow
-- Caveat: GitHub's cron can delay by a few min under load. Fine for
-  catching hour-long outages, not for SLA-grade 60-sec detection.
-- To change cadence / URL: edit the workflow file's `cron:` and
-  `HEALTH_URL:` env, commit to main. Takes effect on next run.
-
-**Option B — UptimeRobot (stricter SLA, separate account)**
-
-Use when you want 5-min checks with reliable timing, public status
-page, or alerts off-GitHub (SMS / Slack / PagerDuty).
+Free, reliable, no GitHub dependency. Best fit for "I want to know
+when the VPS is down and not hear excuses from cron schedulers."
 
 ```bash
 # One-time setup (~90 sec):
 #   1. Sign up at https://uptimerobot.com (free tier: 50 monitors).
 #   2. Grab your "Main" API key from
 #      https://dashboard.uptimerobot.com/integration.php?action=apikey
+#      (the "Read-Only" key won't work — you need the "Main" key).
 bash scripts/uptimerobot-setup.sh --api-key re_xxxxxxxxxxxx
 ```
 
 Idempotent: re-running finds the existing monitor and updates it.
+Output includes the monitor ID — verify in
+https://dashboard.uptimerobot.com/monitors.
+
+Optional follow-ups after the monitor is live:
+
+- Add an SMS / Slack / PagerDuty alert contact at
+  https://dashboard.uptimerobot.com/alertContacts.
+- (paid) Enable the public status page at
+  https://dashboard.uptimerobot.com/publicStatusPage and link it from
+  your footer / status page.
+
+**Option B — GitHub Actions scheduled workflow (zero-setup, slower)**
+
+A workflow at `.github/workflows/uptime-monitor.yml` runs every 5 min
+and pings `/api/health`. On failure it opens (or comments on) a GitHub
+Issue labeled `uptime-down` — GitHub auto-emails the repo owner on
+every issue event. Free for public repos (this one is).
+
+- Workflow file: `.github/workflows/uptime-monitor.yml`
+- Failures: GitHub → Issues → label `uptime-down`
+- Manual trigger: GitHub → Actions → `uptime-monitor` → Run workflow
+- Edit cadence / URL: change `cron:` + `HEALTH_URL:` env in the
+  workflow file, commit to main.
+
+**Heads up on GitHub's schedule reliability.** GitHub's
+[scheduled-workflow docs](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule)
+warn that the `schedule` event can be delayed or dropped under load,
+especially at the top of every hour. The probe logic itself is sound
+(verified by push-triggered run), but the 5-min cadence is "best
+effort, may skip ticks." If you need stricter timing, use Option A.
 
 **Other options (paid or self-hosted):**
 
@@ -364,8 +379,7 @@ Idempotent: re-running finds the existing monitor and updates it.
   `db != "up"`).
 - **Cronitor** (https://cronitor.io) — cron-style, also free.
 
-Wire the chosen external monitor's public status page
-(`https://stats.uptimerobot.com/…` for UptimeRobot) to your `/status`
+Wire the chosen external monitor's public status page to your `/status`
 page link in the footer — operators trust external uptime pages more
 than a self-hosted status string.
 
