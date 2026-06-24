@@ -20,6 +20,8 @@ on:
     # Every 5 min. GitHub may delay by a few min under load — fine for
     # catching hour-long outages, not for SLA-grade 60-sec detection.
     - cron: "*/5 * * * *"
+  push:
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
