@@ -1,0 +1,12 @@
+[Unit]
+Description=GarageRoute /api/health watchdog (same-VPS app-level monitor)
+After=network.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/garageroute-watchdog.env
+# Run from the deployed work tree (the script is committed to the repo
+# and shipped via the post-receive hook — see scripts/post-receive.sh).
+ExecStart=/var/www/garageroute.com/scripts/watchdog.sh
+StandardOutput=append:/var/log/garageroute-watchdog.log
+StandardError=append:/var/log/garageroute-watchdog.log
