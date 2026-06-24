@@ -285,21 +285,29 @@ Requires `HTTP 200` AND `body.ok == true`. After 3 consecutive failures
 it fires ONE alert (webhook POST), then goes quiet until the service
 recovers. Recovery resets the counter and logs.
 
-**Alert channel:** set `ALERT_WEBHOOK_URL` in `/etc/garageroute-watchdog.env`
-to a Slack / Discord incoming-webhook, a small Resend relay, or anything
-that accepts a JSON POST. The payload is:
+**Alert channel:** two options, pick at most one (or both — webhook
+wins, email is fallback):
 
-```json
-{
-  "text": "GarageRoute /api/health unhealthy: 3 consecutive failures (last http_code=502)",
-  "source": "garageroute-watchdog",
-  "count": 3,
-  "http_code": "502",
-  "url": "https://garageroute.com/api/health"
-}
-```
+- **Email (default, wired)** — set `ALERT_EMAIL_TO=you@example.com` in
+  `/etc/garageroute-watchdog.env`. The systemd unit also loads
+  `/var/www/garageroute.com/.env`, so it picks up `RESEND_API_KEY` +
+  `RESEND_FROM_EMAIL` automatically. No new secrets to manage. The
+  alert is a transactional email via the existing Resend integration.
+- **Webhook** — set `ALERT_WEBHOOK_URL=https://…` to a Slack /
+  Discord incoming-webhook, a small relay, or anything that accepts a
+  JSON POST. The payload is:
 
-Leave it unset to log only (`/var/log/garageroute-watchdog.log`).
+  ```json
+  {
+    "text": "GarageRoute /api/health unhealthy: 3 consecutive failures (last http_code=502)",
+    "source": "garageroute-watchdog",
+    "count": 3,
+    "http_code": "502",
+    "url": "https://garageroute.com/api/health"
+  }
+  ```
+
+Leave both unset to log only (`/var/log/garageroute-watchdog.log`).
 
 **Smoke test:**
 
@@ -316,29 +324,50 @@ systemctl list-timers garageroute-watchdog.timer
 
 ### 6.2 Host-level external monitor (do this once)
 
-Free tier of any of these works. Pick one:
+Two options — pick one. The repo ships both.
 
-- **UptimeRobot** (https://uptimerobot.com) — 5-min checks, 50 monitors
-  free, email + Slack + webhook alerts. Status code only, doesn't parse
-  the body.
-- **Better Stack** (https://betterstack.com) — 3-min checks, status page
-  included, parses JSON body (so it can alert specifically when
+**Option A — GitHub Actions (recommended, zero setup)**
+
+A scheduled workflow already lives at
+`.github/workflows/uptime-monitor.yml`. It runs every 5 min, pings
+`/api/health`, and opens (or auto-closes) a GitHub Issue labeled
+`uptime-down` on failure. GitHub auto-emails the repo owner on every
+issue event. Free for public repos (this one is).
+
+- Workflow file: `.github/workflows/uptime-monitor.yml`
+- Failures: GitHub → Issues → label `uptime-down`
+- Manual trigger: GitHub → Actions → `uptime-monitor` → Run workflow
+- Caveat: GitHub's cron can delay by a few min under load. Fine for
+  catching hour-long outages, not for SLA-grade 60-sec detection.
+- To change cadence / URL: edit the workflow file's `cron:` and
+  `HEALTH_URL:` env, commit to main. Takes effect on next run.
+
+**Option B — UptimeRobot (stricter SLA, separate account)**
+
+Use when you want 5-min checks with reliable timing, public status
+page, or alerts off-GitHub (SMS / Slack / PagerDuty).
+
+```bash
+# One-time setup (~90 sec):
+#   1. Sign up at https://uptimerobot.com (free tier: 50 monitors).
+#   2. Grab your "Main" API key from
+#      https://dashboard.uptimerobot.com/integration.php?action=apikey
+bash scripts/uptimerobot-setup.sh --api-key re_xxxxxxxxxxxx
+```
+
+Idempotent: re-running finds the existing monitor and updates it.
+
+**Other options (paid or self-hosted):**
+
+- **Better Stack** (https://betterstack.com) — 3-min checks, status
+  page included, parses JSON body (alerts specifically when
   `db != "up"`).
 - **Cronitor** (https://cronitor.io) — cron-style, also free.
 
-**Setup (UptimeRobot example):**
-
-1. Add monitor → HTTPS → `https://garageroute.com/api/health`.
-2. Interval: 5 min. Timeout: 30s.
-3. Alert contacts: email + (optional) phone SMS for 5+ failures.
-4. Keyword monitoring (advanced): trigger on the literal string `"ok":true`
-   in the response body — fires even if nginx returns 200 with a stale
-   page.
-
-Wire the public status page (UptimeRobot ships one) at
-`https://stats.uptimerobot.com/…` to your `/status` page link in the
-footer — operators trust external uptime pages more than a self-hosted
-status string.
+Wire the chosen external monitor's public status page
+(`https://stats.uptimerobot.com/…` for UptimeRobot) to your `/status`
+page link in the footer — operators trust external uptime pages more
+than a self-hosted status string.
 
 ---
 

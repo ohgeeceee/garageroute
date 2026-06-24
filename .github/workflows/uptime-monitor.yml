@@ -1,0 +1,135 @@
+# GarageRoute external uptime monitor.
+#
+# Runs every 5 min on GitHub Actions. Probes /api/health and opens
+# (or updates / closes) a GitHub Issue on failure. GitHub auto-emails
+# repo watchers on every issue event — zero setup beyond this file
+# landing on `main`. Free for public repos (this one is public).
+#
+# Pairs with the same-VPS systemd watchdog (`scripts/watchdog.sh`),
+# which fires when only the app is broken. This workflow catches
+# VPS-level outages (host down, network partition, nginx not running).
+#
+# To trigger manually: GitHub → Actions → "uptime-monitor" → Run workflow.
+# To verify it ran: GitHub → Actions → "uptime-monitor" → latest run.
+# On failure, check: GitHub → Issues → label "uptime-down".
+
+name: uptime-monitor
+
+on:
+  schedule:
+    # Every 5 min. GitHub may delay by a few min under load — fine for
+    # catching hour-long outages, not for SLA-grade 60-sec detection.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  probe:
+    name: Probe /api/health
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      HEALTH_URL: "https://garageroute.com/api/health"
+    steps:
+      - name: Probe
+        id: probe
+        run: |
+          set -uo pipefail
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 15 "$HEALTH_URL" 2>/dev/null || echo "000")
+          ok="false"
+          if [[ "$code" == "200" ]] && grep -q '"ok":true' "$body" 2>/dev/null; then
+            ok="true"
+          fi
+          body_preview=$(head -c 200 "$body" 2>/dev/null | tr -d '\n' | tr '"' "'")
+          ts=$(date -u +%FT%TZ)
+          echo "ts=$ts"        >> "$GITHUB_OUTPUT"
+          echo "code=$code"    >> "$GITHUB_OUTPUT"
+          echo "ok=$ok"        >> "$GITHUB_OUTPUT"
+          echo "body=$body_preview" >> "$GITHUB_OUTPUT"
+          rm -f "$body"
+          if [[ "$ok" == "true" ]]; then
+            echo "OK  $ts  http=$code"
+          else
+            echo "DOWN  $ts  http=$code  body=$body_preview"
+          fi
+
+      - name: Handle recovery
+        if: steps.probe.outputs.ok == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ts   = `${{ steps.probe.outputs.ts }}`;
+            const code = `${{ steps.probe.outputs.code }}`;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'uptime-down', per_page: 10
+            });
+            if (issues.data.length === 0) {
+              core.notice(`No open uptime-down issues — site healthy at ${ts} (http ${code})`);
+              return;
+            }
+            for (const i of issues.data) {
+              core.info(`Closing issue #${i.number} (recovered at ${ts})`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: i.number,
+                body: `✅ Recovered at \`${ts}\` — \`/api/health\` returned HTTP ${code}. Closing.`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: i.number, state: 'closed'
+              });
+            }
+
+      - name: Handle failure
+        if: steps.probe.outputs.ok != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ts   = `${{ steps.probe.outputs.ts }}`;
+            const code = `${{ steps.probe.outputs.code }}`;
+            const body = `${{ steps.probe.outputs.body }}`;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'uptime-down', per_page: 1
+            });
+            const title = '🚨 GarageRoute /api/health is DOWN';
+            const issueBody = [
+              'External uptime monitor (GitHub Actions, every 5 min) detected a failure.',
+              '',
+              `- **URL**: https://garageroute.com/api/health`,
+              `- **HTTP code**: \`${code}\``,
+              `- **Detected**: \`${ts}\``,
+              `- **Body preview**: \`${body || '(empty)'}\``,
+              '',
+              'This issue auto-updates on subsequent failed probes and auto-closes on recovery.',
+              '',
+              '## Recovery commands',
+              '```bash',
+              'ssh montanablotter.com',
+              'pm2 status garageroute',
+              'pm2 logs garageroute --lines 80 --nostream',
+              'tail -50 /var/log/garageroute-watchdog.log',
+              'systemctl status garageroute-watchdog.timer --no-pager',
+              '```',
+            ].join('\n');
+            if (issues.data.length > 0) {
+              const i = issues.data[0];
+              core.info(`Updating issue #${i.number} (still down at ${ts}, http ${code})`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: i.number,
+                body: `❌ Still down at \`${ts}\` — HTTP \`${code}\`. Body: \`${body || '(empty)'}\``
+              });
+            } else {
+              core.warning(`Opening new uptime-down issue (down at ${ts}, http ${code})`);
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body: issueBody,
+                labels: ['uptime-down', 'incident']
+              });
+            }
