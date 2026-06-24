@@ -5,6 +5,9 @@ After=network.target
 [Service]
 Type=oneshot
 EnvironmentFile=-/etc/garageroute-watchdog.env
+# Also load the app's env so the Resend email fallback (RESEND_API_KEY,
+# RESEND_FROM_EMAIL) is available without duplicating secrets here.
+EnvironmentFile=-/var/www/garageroute.com/.env
 # Run from the deployed work tree (the script is committed to the repo
 # and shipped via the post-receive hook — see scripts/post-receive.sh).
 ExecStart=/var/www/garageroute.com/scripts/watchdog.sh
