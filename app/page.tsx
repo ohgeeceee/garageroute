@@ -364,17 +364,11 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============= STATS STRIP ============= */}
-      <section className="relative z-10 -mt-10 mx-4 sm:mx-6 lg:mx-auto lg:max-w-6xl">
-        <div className="rounded-2xl bg-surface-900 px-6 py-8 shadow-2xl ring-1 ring-surface-900/10 sm:px-10 lg:px-14">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            <StatCounter value={activeSales} label="sales this weekend" />
-            <StatCounter value={totalItems} label="items listed" />
-            <StatCounter value={totalImpact} decimals={1} suffix=" kg" label="waste diverted" />
-            <StatCounter value={97} suffix="%" label="say it saves gas" />
-          </div>
-        </div>
-      </section>
+      {/* Data-dependent sections (stats + featured + impact) stream in via
+          Suspense so the hero renders immediately. */}
+      <Suspense fallback={<HomeDataFallback />}>
+        <HomeDataSections />
+      </Suspense>
 
       {/* ============= TRUST LOGOS + STATE PICKER ============= */}
       <section className="bg-surface-0 py-14">
@@ -460,44 +454,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============= IMPACT CALLOUT ============= */}
-      <section className="bg-surface-50 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-8 rounded-2xl border border-success-200 bg-success-50 p-8 sm:p-10 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-success-100 text-success-700">
-                <Leaf className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <h2 className="mt-4 text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
-                A Saturday drive that pays you back.
-              </h2>
-              <p className="mt-2 max-w-2xl text-surface-700">
-                Every item sold through GarageRoute keeps reusable goods out of the
-                landfill. Track your household&apos;s diverted-waste total in your dashboard.
-              </p>
-            </div>
-            <div className="flex items-center justify-start gap-8 lg:justify-end">
-              <div>
-                <div className="text-4xl font-extrabold text-success-700">
-                  {Math.round(totalImpact).toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-surface-600">
-                  kg diverted
-                </div>
-              </div>
-              <div>
-                <div className="text-4xl font-extrabold text-success-700">
-                  {totalItems.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-surface-600">
-                  items rehomed
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ============= TESTIMONIALS ============= */}
       <section className="bg-surface-0 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -533,49 +489,6 @@ export default async function Home() {
                 </figcaption>
               </figure>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============= FEATURED SALES ============= */}
-      <section className="bg-surface-50 py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between gap-4 flex-wrap">
-            <div>
-              <p className="eyebrow">This weekend</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-surface-900">
-                Sales happening now
-              </h2>
-            </div>
-            <Link
-              href="/sales"
-              className="hidden text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline sm:inline-flex items-center gap-1"
-            >
-              View all sales
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredSales.map((sale) => (
-              <SaleCard key={sale.id} sale={sale} />
-            ))}
-          </div>
-
-          {featuredSales.length === 0 && (
-            <p className="mt-4 text-surface-500">
-              No featured sales available yet — check back soon.
-            </p>
-          )}
-
-          <div className="mt-6 text-center sm:hidden">
-            <Link
-              href="/sales"
-              className="inline-flex items-center gap-1 text-sm font-bold text-brand-700 hover:underline"
-            >
-              View all sales
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
           </div>
         </div>
       </section>
