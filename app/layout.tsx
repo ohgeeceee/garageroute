@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -179,6 +180,14 @@ export default async function RootLayout({
         <Providers user={sessionUser}>{children}</Providers>
         <ScoutWidget />
         <ServiceWorkerRegistration />
+        {/* ohgeeceee network bar: links every sibling site. Hosted on the hub;
+            edit the registry once in ogc-network.js. The bar auto-detects
+            garageroute.com and hides its own chip. */}
+        <Script
+          src="https://ohgeec.com/ogc-network.js"
+          data-ogc-theme="dark"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
