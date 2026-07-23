@@ -1,0 +1,410 @@
+# Instincts generated from https://github.com/ohgeeceee/garageroute
+# Generated: 2026-07-23T08:00:30.170Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: garageroute-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: docs, fix
+
+## Evidence
+
+- 3 commits analyzed
+- Detected conventional commit pattern
+- Examples: docs: add implementation spec (product scope + key architecture decisions), fix(security): strip sellerToken from public API responses; correct spec inaccuracies
+
+---
+id: garageroute-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Commit Length
+
+## Action
+
+Write moderate-length commit messages (~69 characters)
+
+## Evidence
+
+- Average commit message length: 69 chars
+- Based on 3 commits
+
+---
+id: garageroute-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Naming Files
+
+## Action
+
+Use snake_case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: snake_case
+
+---
+id: garageroute-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: garageroute-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Export Style
+
+## Action
+
+Prefer default exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: default
+
+---
+id: garageroute-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: garageroute-workflow-add-or-update-implementation-spec
+trigger: "when doing add or update implementation spec"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Workflow Add Or Update Implementation Spec
+
+## Action
+
+Follow the add-or-update-implementation-spec workflow:
+1. Create or update a markdown spec file in docs/
+2. Describe scope, audience, success metrics, and key technical decisions
+3. Commit the markdown file with a descriptive message
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: docs/IMPLEMENTATION_SPEC.md, docs/SELLER_ACTIVATION_SPEC.md
+
+---
+id: garageroute-workflow-spec-aligned-code-and-doc-fix
+trigger: "when doing spec aligned code and doc fix"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/ohgeeceee/garageroute
+---
+
+# Garageroute Workflow Spec Aligned Code And Doc Fix
+
+## Action
+
+Follow the spec-aligned-code-and-doc-fix workflow:
+1. Identify and fix code issues in relevant API or app files
+2. Update one or more spec markdown files in docs/ to reflect the change
+3. Commit both code and doc/spec changes together
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: app/api/sales/[id]/route.ts, app/api/sales/route.ts, app/sales/[id]/page.tsx
+
+---
+id: garageroute-instinct-file-naming
+trigger: "When creating a new file in the codebase"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct File Naming
+
+## Action
+
+Name the file using snake_case convention
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- Consistent file naming in app/ and docs/ folders
+
+---
+id: garageroute-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: garageroute-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: garageroute-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: garageroute-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Import Style
+
+## Action
+
+Use alias import style
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: garageroute-instinct-export-style
+trigger: "When exporting modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Export Style
+
+## Action
+
+Use default export style
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: garageroute-instinct-error-handling
+trigger: "When handling errors in code"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Error Handling
+
+## Action
+
+Use try-catch blocks for error handling; do not implement custom error classes or global handlers
+
+## Evidence
+
+- Pattern in errorHandling.style
+- No customErrorClasses/globalHandler/errorBoundaries
+
+---
+id: garageroute-instinct-test-location
+trigger: "When adding or updating tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Test Location
+
+## Action
+
+Place test files in a separate directory from source code
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation: separate
+
+---
+id: garageroute-instinct-git-commit-format
+trigger: "When making a commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Git Commit Format
+
+## Action
+
+Use conventional commit format with a prefix (e.g., docs, fix) followed by a colon and a concise message
+
+## Evidence
+
+- Pattern in commits.type: conventional
+- Examples: 'docs: add implementation spec', 'fix(security): strip sellerToken...'
+
+---
+id: garageroute-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Git Commit Length
+
+## Action
+
+Keep the commit message concise, around 69 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength: 69
+
+---
+id: garageroute-instinct-add-or-update-implementation-spec
+trigger: "When someone wants to formally document a new feature, product phase, or architectural decision"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Add Or Update Implementation Spec
+
+## Action
+
+Create or update a markdown spec file in docs/, describe scope, audience, success metrics, and key technical decisions, then commit the markdown file with a descriptive message
+
+## Evidence
+
+- Workflow: add-or-update-implementation-spec
+- Commits: 'docs: add implementation spec (product scope + key architecture decisions)'
+- Files: docs/IMPLEMENTATION_SPEC.md, docs/SELLER_ACTIVATION_SPEC.md
+
+---
+id: garageroute-instinct-spec-aligned-code-and-doc-fix
+trigger: "When someone needs to fix a critical bug or security issue and ensure the documentation/spec stays accurate"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: ohgeeceee/garageroute
+---
+
+# Garageroute Instinct Spec Aligned Code And Doc Fix
+
+## Action
+
+Identify and fix code issues in relevant API or app files, update one or more spec markdown files in docs/ to reflect the change, and commit both code and doc/spec changes together
+
+## Evidence
+
+- Workflow: spec-aligned-code-and-doc-fix
+- Commit: 'fix(security): strip sellerToken from public API responses; correct spec inaccuracies'
+- Files: app/api/sales/[id]/route.ts, docs/IMPLEMENTATION_SPEC.md
+
