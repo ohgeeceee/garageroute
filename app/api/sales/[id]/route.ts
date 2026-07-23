@@ -27,5 +27,7 @@ export async function GET(
     return NextResponse.json({ error: "Sale not found" }, { status: 404 });
   }
 
-  return NextResponse.json(normalizeSale(sale));
+  // Strip seller-only fields before returning to public callers.
+  const { sellerToken: _, sellerEmail: __, ...publicSale } = normalizeSale(sale);
+  return NextResponse.json(publicSale);
 }
