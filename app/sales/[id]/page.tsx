@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { fetchSale } from "@/lib/api";
+import { prisma } from "@/lib/prisma";
 import {
   saleJsonLd,
   breadcrumbJsonLd,
@@ -81,6 +82,14 @@ export default async function SaleDetailPage({
   } catch {
     notFound();
   }
+
+  // sellerToken is omitted from the public API; fetch it directly here so the
+  // server-rendered "Manage inventory" link still works for the seller.
+  const sellerAccess = await prisma.sale.findUnique({
+    where: { id },
+    select: { sellerToken: true },
+  });
+  const sellerToken = sellerAccess?.sellerToken;
 
   const status = sale.status || "active";
   const isClosed = status === "cancelled" || status === "ended";
@@ -193,10 +202,10 @@ export default async function SaleDetailPage({
             )}
           </div>
 
-          {sale.sellerToken && (
+          {sellerToken && (
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
-                href={`/manage/${sale.sellerToken}`}
+                href={`/manage/${sellerToken}`}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
               >
                 <Edit3 className="h-4 w-4" />

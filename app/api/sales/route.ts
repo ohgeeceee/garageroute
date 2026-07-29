@@ -161,7 +161,11 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.json(decorated.map(normalizeSale));
+  // Strip seller-only fields before returning to public callers.
+  return NextResponse.json(decorated.map((s) => {
+    const { sellerToken: _, sellerEmail: __, ...pub } = normalizeSale(s);
+    return pub;
+  }));
 }
 
 export async function POST(request: NextRequest) {
